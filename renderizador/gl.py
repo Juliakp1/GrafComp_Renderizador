@@ -32,28 +32,19 @@ class GL:
         GL.near = near
         GL.far = far
 
+    # --------------------------------------------------------------- #
+
     @staticmethod
     def polypoint2D(point, colors):
         """Função usada para renderizar Polypoint2D."""
-        # https://www.web3d.org/specifications/X3Dv4/ISO-IEC19775-1v4-IS/Part01/components/geometry2D.html#Polypoint2D
-        # Nessa função você receberá pontos no parâmetro point, esses pontos são uma lista
-        # de pontos x, y sempre na ordem. Assim point[0] é o valor da coordenada x do
-        # primeiro ponto, point[1] o valor y do primeiro ponto. Já point[2] é a
-        # coordenada x do segundo ponto e assim por diante. Assuma a quantidade de pontos
-        # pelo tamanho da lista e assuma que sempre vira uma quantidade par de valores.
-        # O parâmetro colors é um dicionário com os tipos cores possíveis, para o Polypoint2D
-        # você pode assumir inicialmente o desenho dos pontos com a cor emissiva (emissiveColor).
+        color = [colors[0]*255, colors[0]*255, colors[0]*255]
+        for i in range(0, len(point), 2):
+            x = int(point[i])
+            y = int(point[i + 1])
+            gpu.GPU.draw_pixel([x, y], gpu.GPU.RGB8, colors.get("emissiveColor", color))
 
-        # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
-        print("Polypoint2D : pontos = {0}".format(point)) # imprime no terminal pontos
-        print("Polypoint2D : colors = {0}".format(colors)) # imprime no terminal as cores
+    # --------------------------------------------------------------- #
 
-        # Exemplo:
-        pos_x = GL.width//2
-        pos_y = GL.height//2
-        gpu.GPU.draw_pixel([pos_x, pos_y], gpu.GPU.RGB8, [255, 0, 0])  # altera pixel (u, v, tipo, r, g, b)
-        # cuidado com as cores, o X3D especifica de (0,1) e o Framebuffer de (0,255)
-        
     @staticmethod
     def polyline2D(lineSegments, colors):
         """Função usada para renderizar Polyline2D."""
@@ -77,6 +68,20 @@ class GL:
         gpu.GPU.draw_pixel([pos_x, pos_y], gpu.GPU.RGB8, [255, 0, 255])  # altera pixel (u, v, tipo, r, g, b)
         # cuidado com as cores, o X3D especifica de (0,1) e o Framebuffer de (0,255)
 
+        # Attempt
+        color = [colors[0]*255, colors[0]*255, colors[0]*255]
+        for i in range(0, len(lineSegments), 4):
+            x1 = int(lineSegments[i])
+            y1 = int(lineSegments[i + 1])
+            x2 = int(lineSegments[i + 2])
+            y2 = int(lineSegments[i + 3])
+
+            # There is a draw line apparently:
+            # Do we use it??
+            # gpu.GPU.draw_line([x1, y1], [x2, y2], gpu.GPU.RGB8, colors.get("emissiveColor", [255, 255, 255]))
+
+    # --------------------------------------------------------------- #
+
     @staticmethod
     def circle2D(radius, colors):
         """Função usada para renderizar Circle2D."""
@@ -95,6 +100,7 @@ class GL:
         gpu.GPU.draw_pixel([pos_x, pos_y], gpu.GPU.RGB8, [255, 0, 255])  # altera pixel (u, v, tipo, r, g, b)
         # cuidado com as cores, o X3D especifica de (0,1) e o Framebuffer de (0,255)
 
+    # --------------------------------------------------------------- #
 
     @staticmethod
     def triangleSet2D(vertices, colors):
@@ -113,6 +119,7 @@ class GL:
         # Exemplo:
         gpu.GPU.draw_pixel([6, 8], gpu.GPU.RGB8, [255, 255, 0])  # altera pixel (u, v, tipo, r, g, b)
 
+    # --------------------------------------------------------------- #
 
     @staticmethod
     def triangleSet(point, colors):
@@ -138,6 +145,8 @@ class GL:
         # Exemplo de desenho de um pixel branco na coordenada 10, 10
         gpu.GPU.draw_pixel([10, 10], gpu.GPU.RGB8, [255, 255, 255])  # altera pixel
 
+    # --------------------------------------------------------------- #
+
     @staticmethod
     def viewpoint(position, orientation, fieldOfView):
         """Função usada para renderizar (na verdade coletar os dados) de Viewpoint."""
@@ -150,6 +159,8 @@ class GL:
         print("position = {0} ".format(position), end='')
         print("orientation = {0} ".format(orientation), end='')
         print("fieldOfView = {0} ".format(fieldOfView))
+
+    # --------------------------------------------------------------- #
 
     @staticmethod
     def transform_in(translation, scale, rotation):
@@ -174,6 +185,8 @@ class GL:
             print("rotation = {0} ".format(rotation), end='') # imprime no terminal
         print("")
 
+    # --------------------------------------------------------------- #
+
     @staticmethod
     def transform_out():
         """Função usada para renderizar (na verdade coletar os dados) de Transform."""
@@ -184,6 +197,8 @@ class GL:
 
         # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
         print("Saindo de Transform")
+
+    # --------------------------------------------------------------- #
 
     @staticmethod
     def triangleStripSet(point, stripCount, colors):
@@ -210,6 +225,8 @@ class GL:
         # Exemplo de desenho de um pixel branco na coordenada 10, 10
         gpu.GPU.draw_pixel([10, 10], gpu.GPU.RGB8, [255, 255, 255])  # altera pixel
 
+    # --------------------------------------------------------------- #
+
     @staticmethod
     def indexedTriangleStripSet(point, index, colors):
         """Função usada para renderizar IndexedTriangleStripSet."""
@@ -232,6 +249,8 @@ class GL:
 
         # Exemplo de desenho de um pixel branco na coordenada 10, 10
         gpu.GPU.draw_pixel([10, 10], gpu.GPU.RGB8, [255, 255, 255])  # altera pixel
+
+    # --------------------------------------------------------------- #
 
     @staticmethod
     def indexedFaceSet(coord, coordIndex, colorPerVertex, color, colorIndex,
@@ -276,6 +295,8 @@ class GL:
         # Exemplo de desenho de um pixel branco na coordenada 10, 10
         gpu.GPU.draw_pixel([10, 10], gpu.GPU.RGB8, [255, 255, 255])  # altera pixel
 
+    # --------------------------------------------------------------- #
+
     @staticmethod
     def box(size, colors):
         """Função usada para renderizar Boxes."""
@@ -294,6 +315,8 @@ class GL:
         # Exemplo de desenho de um pixel branco na coordenada 10, 10
         gpu.GPU.draw_pixel([10, 10], gpu.GPU.RGB8, [255, 255, 255])  # altera pixel
 
+    # --------------------------------------------------------------- #
+
     @staticmethod
     def sphere(radius, colors):
         """Função usada para renderizar Esferas."""
@@ -307,6 +330,8 @@ class GL:
         # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
         print("Sphere : radius = {0}".format(radius)) # imprime no terminal o raio da esfera
         print("Sphere : colors = {0}".format(colors)) # imprime no terminal as cores
+
+    # --------------------------------------------------------------- #
 
     @staticmethod
     def cone(bottomRadius, height, colors):
@@ -324,6 +349,8 @@ class GL:
         print("Cone : height = {0}".format(height)) # imprime no terminal a altura do cone
         print("Cone : colors = {0}".format(colors)) # imprime no terminal as cores
 
+    # --------------------------------------------------------------- #
+
     @staticmethod
     def cylinder(radius, height, colors):
         """Função usada para renderizar Cilindros."""
@@ -340,6 +367,8 @@ class GL:
         print("Cylinder : height = {0}".format(height)) # imprime no terminal a altura do cilindro
         print("Cylinder : colors = {0}".format(colors)) # imprime no terminal as cores
 
+    # --------------------------------------------------------------- #
+
     @staticmethod
     def navigationInfo(headlight):
         """Características físicas do avatar do visualizador e do modelo de visualização."""
@@ -352,6 +381,8 @@ class GL:
 
         # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
         print("NavigationInfo : headlight = {0}".format(headlight)) # imprime no terminal
+
+    # --------------------------------------------------------------- #
 
     @staticmethod
     def directionalLight(ambientIntensity, color, intensity, direction):
@@ -369,6 +400,8 @@ class GL:
         print("DirectionalLight : intensity = {0}".format(intensity)) # imprime no terminal
         print("DirectionalLight : direction = {0}".format(direction)) # imprime no terminal
 
+    # --------------------------------------------------------------- #
+
     @staticmethod
     def pointLight(ambientIntensity, color, intensity, location):
         """Luz pontual."""
@@ -385,6 +418,8 @@ class GL:
         print("PointLight : intensity = {0}".format(intensity)) # imprime no terminal
         print("PointLight : location = {0}".format(location)) # imprime no terminal
 
+    # --------------------------------------------------------------- #
+
     @staticmethod
     def fog(visibilityRange, color):
         """Névoa."""
@@ -400,6 +435,8 @@ class GL:
         # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
         print("Fog : color = {0}".format(color)) # imprime no terminal
         print("Fog : visibilityRange = {0}".format(visibilityRange))
+
+    # --------------------------------------------------------------- #
 
     @staticmethod
     def timeSensor(cycleInterval, loop):
@@ -425,6 +462,8 @@ class GL:
 
         return fraction_changed
 
+    # --------------------------------------------------------------- #
+
     @staticmethod
     def splinePositionInterpolator(set_fraction, key, keyValue, closed):
         """Interpola não linearmente entre uma lista de vetores 3D."""
@@ -447,6 +486,8 @@ class GL:
         value_changed = [0.0, 0.0, 0.0]
         
         return value_changed
+
+    # --------------------------------------------------------------- #
 
     @staticmethod
     def orientationInterpolator(set_fraction, key, keyValue):
@@ -479,3 +520,5 @@ class GL:
 
     def fragment_shader(self, shader):
         """Para no futuro implementar um fragment shader."""
+
+    # --------------------------------------------------------------- #
