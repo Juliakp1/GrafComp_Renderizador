@@ -55,7 +55,9 @@ class GL:
             x2 = int(lineSegments[i + 2])
             y2 = int(lineSegments[i + 3])
 
-            gpu.GPU.draw_line([x1, y1], [x2, y2], gpu.GPU.RGB8, colors.get("emissiveColor", color))
+            for x in np.arange(x1, x2, 0.5):
+                y = int(np.interp(x, [x1, x2], [y1, y2]))
+                gpu.GPU.draw_pixel([x, y], gpu.GPU.RGB8, colors.get("emissiveColor", color))
 
     # --------------------------------------------------------------- #
 
@@ -82,14 +84,6 @@ class GL:
     @staticmethod
     def triangleSet2D(vertices, colors):
         """Função usada para renderizar TriangleSet2D."""
-        # https://www.web3d.org/specifications/X3Dv4/ISO-IEC19775-1v4-IS/Part01/components/geometry2D.html#TriangleSet2D
-        # Nessa função você receberá os vertices de um triângulo no parâmetro vertices,
-        # esses pontos são uma lista de pontos x, y sempre na ordem. Assim point[0] é o
-        # valor da coordenada x do primeiro ponto, point[1] o valor y do primeiro ponto.
-        # Já point[2] é a coordenada x do segundo ponto e assim por diante. Assuma que a
-        # quantidade de pontos é sempre multiplo de 3, ou seja, 6 valores ou 12 valores, etc.
-        # O parâmetro colors é um dicionário com os tipos cores possíveis, para o TriangleSet2D
-        # você pode assumir inicialmente o desenho das linhas com a cor emissiva (emissiveColor).
         
         color = [colors[0]*255, colors[1]*255, colors[2]*255]
         for i in range(0, len(vertices), 6):
@@ -99,10 +93,8 @@ class GL:
             y2 = int(vertices[i + 3])
             x3 = int(vertices[i + 4])
             y3 = int(vertices[i + 5])
-
-            gpu.GPU.draw_line([x1, y1], [x2, y2], gpu.GPU.RGB8, colors.get("emissiveColor", color))
-            gpu.GPU.draw_line([x2, y2], [x3, y3], gpu.GPU.RGB8, colors.get("emissiveColor", color))
-            gpu.GPU.draw_line([x3, y3], [x1, y1], gpu.GPU.RGB8, colors.get("emissiveColor", color))
+            
+            # TODO
 
     # --------------------------------------------------------------- #
 
