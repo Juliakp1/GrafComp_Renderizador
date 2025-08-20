@@ -37,7 +37,7 @@ class GL:
     @staticmethod
     def polypoint2D(point, colors):
         """Função usada para renderizar Polypoint2D."""
-        color = [colors[0]*255, colors[0]*255, colors[0]*255]
+        color = [colors[0]*255, colors[1]*255, colors[2]*255]
         for i in range(0, len(point), 2):
             x = int(point[i])
             y = int(point[i + 1])
@@ -48,7 +48,7 @@ class GL:
     @staticmethod
     def polyline2D(lineSegments, colors):
         """Função usada para renderizar Polyline2D."""
-        color = [colors[0]*255, colors[0]*255, colors[0]*255]
+        color = [colors[0]*255, colors[1]*255, colors[2]*255]
         for i in range(0, len(lineSegments), 4):
             x1 = int(lineSegments[i])
             y1 = int(lineSegments[i + 1])
@@ -91,7 +91,7 @@ class GL:
         # O parâmetro colors é um dicionário com os tipos cores possíveis, para o TriangleSet2D
         # você pode assumir inicialmente o desenho das linhas com a cor emissiva (emissiveColor).
         
-        color = [colors[0]*255, colors[0]*255, colors[0]*255]
+        color = [colors[0]*255, colors[1]*255, colors[2]*255]
         for i in range(0, len(vertices), 6):
             x1 = int(vertices[i])
             y1 = int(vertices[i + 1])
