@@ -48,27 +48,6 @@ class GL:
     @staticmethod
     def polyline2D(lineSegments, colors):
         """Função usada para renderizar Polyline2D."""
-        # https://www.web3d.org/specifications/X3Dv4/ISO-IEC19775-1v4-IS/Part01/components/geometry2D.html#Polyline2D
-        # Nessa função você receberá os pontos de uma linha no parâmetro lineSegments, esses
-        # pontos são uma lista de pontos x, y sempre na ordem. Assim point[0] é o valor da
-        # coordenada x do primeiro ponto, point[1] o valor y do primeiro ponto. Já point[2] é
-        # a coordenada x do segundo ponto e assim por diante. Assuma a quantidade de pontos
-        # pelo tamanho da lista. A quantidade mínima de pontos são 2 (4 valores), porém a
-        # função pode receber mais pontos para desenhar vários segmentos. Assuma que sempre
-        # vira uma quantidade par de valores.
-        # O parâmetro colors é um dicionário com os tipos cores possíveis, para o Polyline2D
-        # você pode assumir inicialmente o desenho das linhas com a cor emissiva (emissiveColor).
-
-        print("Polyline2D : lineSegments = {0}".format(lineSegments)) # imprime no terminal
-        print("Polyline2D : colors = {0}".format(colors)) # imprime no terminal as cores
-        
-        # Exemplo:
-        pos_x = GL.width//2
-        pos_y = GL.height//2
-        gpu.GPU.draw_pixel([pos_x, pos_y], gpu.GPU.RGB8, [255, 0, 255])  # altera pixel (u, v, tipo, r, g, b)
-        # cuidado com as cores, o X3D especifica de (0,1) e o Framebuffer de (0,255)
-
-        # Attempt
         color = [colors[0]*255, colors[0]*255, colors[0]*255]
         for i in range(0, len(lineSegments), 4):
             x1 = int(lineSegments[i])
@@ -76,9 +55,7 @@ class GL:
             x2 = int(lineSegments[i + 2])
             y2 = int(lineSegments[i + 3])
 
-            # There is a draw line apparently:
-            # Do we use it??
-            # gpu.GPU.draw_line([x1, y1], [x2, y2], gpu.GPU.RGB8, colors.get("emissiveColor", [255, 255, 255]))
+            gpu.GPU.draw_line([x1, y1], [x2, y2], gpu.GPU.RGB8, colors.get("emissiveColor", color))
 
     # --------------------------------------------------------------- #
 
@@ -113,11 +90,18 @@ class GL:
         # quantidade de pontos é sempre multiplo de 3, ou seja, 6 valores ou 12 valores, etc.
         # O parâmetro colors é um dicionário com os tipos cores possíveis, para o TriangleSet2D
         # você pode assumir inicialmente o desenho das linhas com a cor emissiva (emissiveColor).
-        print("TriangleSet2D : vertices = {0}".format(vertices)) # imprime no terminal
-        print("TriangleSet2D : colors = {0}".format(colors)) # imprime no terminal as cores
+        
+        for i in range(0, len(vertices), 6):
+            x1 = int(vertices[i])
+            y1 = int(vertices[i + 1])
+            x2 = int(vertices[i + 2])
+            y2 = int(vertices[i + 3])
+            x3 = int(vertices[i + 4])
+            y3 = int(vertices[i + 5])
 
-        # Exemplo:
-        gpu.GPU.draw_pixel([6, 8], gpu.GPU.RGB8, [255, 255, 0])  # altera pixel (u, v, tipo, r, g, b)
+            gpu.GPU.draw_line([x1, y1], [x2, y2], gpu.GPU.RGB8, colors.get("emissiveColor", [255, 255, 255]))
+            gpu.GPU.draw_line([x2, y2], [x3, y3], gpu.GPU.RGB8, colors.get("emissiveColor", [255, 255, 255]))
+            gpu.GPU.draw_line([x3, y3], [x1, y1], gpu.GPU.RGB8, colors.get("emissiveColor", [255, 255, 255]))
 
     # --------------------------------------------------------------- #
 
