@@ -91,6 +91,7 @@ class GL:
         # O parâmetro colors é um dicionário com os tipos cores possíveis, para o TriangleSet2D
         # você pode assumir inicialmente o desenho das linhas com a cor emissiva (emissiveColor).
         
+        color = [colors[0]*255, colors[0]*255, colors[0]*255]
         for i in range(0, len(vertices), 6):
             x1 = int(vertices[i])
             y1 = int(vertices[i + 1])
@@ -99,9 +100,9 @@ class GL:
             x3 = int(vertices[i + 4])
             y3 = int(vertices[i + 5])
 
-            gpu.GPU.draw_line([x1, y1], [x2, y2], gpu.GPU.RGB8, colors.get("emissiveColor", [255, 255, 255]))
-            gpu.GPU.draw_line([x2, y2], [x3, y3], gpu.GPU.RGB8, colors.get("emissiveColor", [255, 255, 255]))
-            gpu.GPU.draw_line([x3, y3], [x1, y1], gpu.GPU.RGB8, colors.get("emissiveColor", [255, 255, 255]))
+            gpu.GPU.draw_line([x1, y1], [x2, y2], gpu.GPU.RGB8, colors.get("emissiveColor", color))
+            gpu.GPU.draw_line([x2, y2], [x3, y3], gpu.GPU.RGB8, colors.get("emissiveColor", color))
+            gpu.GPU.draw_line([x3, y3], [x1, y1], gpu.GPU.RGB8, colors.get("emissiveColor", color))
 
     # --------------------------------------------------------------- #
 
