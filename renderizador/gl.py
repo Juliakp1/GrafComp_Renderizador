@@ -81,17 +81,17 @@ class GL:
 
     # --------------------------------------------------------------- #
 
-    def test_point(x, y, x1, x2, y1, y2):
-        t1 = x - x1
-        t2 = y - y1
-        t3 = x2 - x1
-        t4 = y2 - y1
-        final = t1 * t4 - t2 * t3
-        return 0 <= final
-
     @staticmethod
     def triangleSet2D(vertices, colors):
         """Função usada para renderizar TriangleSet2D."""
+
+        def test_point(x, y, x1, x2, y1, y2):
+            t1 = x - x1
+            t2 = y - y1
+            t3 = x2 - x1
+            t4 = y2 - y1
+            final = t1 * t4 - t2 * t3
+            return 0 <= final
         
         color = [colors[0]*255, colors[1]*255, colors[2]*255]
         for i in range(0, len(vertices), 6):
@@ -105,9 +105,9 @@ class GL:
             for y in range(min(y1, y2), max(y1, y2) + 1):
                 for x in range(min(x1, x2), max(x1, x2) + 1):
                     if (
-                        GL.test_point(x, y, x1, x2, y1, y2) and
-                        GL.test_point(x, y, x2, x3, y2, y3) and
-                        GL.test_point(x, y, x3, x1, y3, y1)
+                        test_point(x, y, x1, x2, y1, y2) and
+                        test_point(x, y, x2, x3, y2, y3) and
+                        test_point(x, y, x3, x1, y3, y1)
                         ):
                         gpu.GPU.draw_pixel([x, y], gpu.GPU.RGB8, colors.get("emissiveColor", color))
 
