@@ -55,13 +55,14 @@ class GL:
             y1 = lineSegments[i + 1]
             y2 = lineSegments[i + 3]
 
-            for x in np.arange(x1, x2, 0.2):
-                y = int(np.interp(x, [x1, x2], [y1, y2]))
-                gpu.GPU.draw_pixel([int(x), int(y)], gpu.GPU.RGB8, color)
-
-            for y in np.arange(y1, y2, 0.2):
-                x = int(np.interp(y, [y1, y2], [x1, x2]))
-                gpu.GPU.draw_pixel([int(x), int(y)], gpu.GPU.RGB8, color)
+            if x1-x2 < y1-y2:
+                for x in np.arange(min(x1, x2), max(x1, x2) + 0.3, 0.2):
+                    y = int(np.interp(x, [x1, x2], [y1, y2]))
+                    gpu.GPU.draw_pixel([int(x), int(y)], gpu.GPU.RGB8, color)
+            else:
+                for y in np.arange(min(y1, y2), max(y1, y2) + 0.3, 0.2):
+                    x = int(np.interp(y, [y1, y2], [x1, x2]))
+                    gpu.GPU.draw_pixel([int(x), int(y)], gpu.GPU.RGB8, color)
 
     # --------------------------------------------------------------- #
 
@@ -95,7 +96,7 @@ class GL:
             t3 = x2 - x1
             t4 = y2 - y1
             final = t1 * t4 - t2 * t3
-            return 0 <= final
+            return 0 >= final
         
         color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
         for i in range(0, len(vertices), 6):
