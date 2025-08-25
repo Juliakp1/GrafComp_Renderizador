@@ -37,27 +37,31 @@ class GL:
     @staticmethod
     def polypoint2D(point, colors):
         """Função usada para renderizar Polypoint2D."""
-        color = [colors[0]*255, colors[1]*255, colors[2]*255]
+        color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
         for i in range(0, len(point), 2):
             x = int(point[i])
             y = int(point[i + 1])
-            gpu.GPU.draw_pixel([x, y], gpu.GPU.RGB8, colors.get("emissiveColor", color))
+            gpu.GPU.draw_pixel([x, y], gpu.GPU.RGB8, color)
 
     # --------------------------------------------------------------- #
 
     @staticmethod
     def polyline2D(lineSegments, colors):
         """Função usada para renderizar Polyline2D."""
-        color = [colors[0]*255, colors[1]*255, colors[2]*255]
+        color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
         for i in range(0, len(lineSegments), 4):
-            x1 = int(lineSegments[i])
-            y1 = int(lineSegments[i + 1])
-            x2 = int(lineSegments[i + 2])
-            y2 = int(lineSegments[i + 3])
+            x1 = lineSegments[i]
+            x2 = lineSegments[i + 2]
+            y1 = lineSegments[i + 1]
+            y2 = lineSegments[i + 3]
 
-            for x in np.arange(x1, x2, 0.5):
+            for x in np.arange(x1, x2, 0.2):
                 y = int(np.interp(x, [x1, x2], [y1, y2]))
-                gpu.GPU.draw_pixel([x, y], gpu.GPU.RGB8, colors.get("emissiveColor", color))
+                gpu.GPU.draw_pixel([int(x), int(y)], gpu.GPU.RGB8, color)
+
+            for y in np.arange(y1, y2, 0.2):
+                x = int(np.interp(y, [y1, y2], [x1, x2]))
+                gpu.GPU.draw_pixel([int(x), int(y)], gpu.GPU.RGB8, color)
 
     # --------------------------------------------------------------- #
 
@@ -93,23 +97,23 @@ class GL:
             final = t1 * t4 - t2 * t3
             return 0 <= final
         
-        color = [colors[0]*255, colors[1]*255, colors[2]*255]
+        color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
         for i in range(0, len(vertices), 6):
-            x1 = int(vertices[i])
-            y1 = int(vertices[i + 1])
-            x2 = int(vertices[i + 2])
-            y2 = int(vertices[i + 3])
-            x3 = int(vertices[i + 4])
-            y3 = int(vertices[i + 5])
+            x1 = vertices[i]
+            y1 = vertices[i + 1]
+            x2 = vertices[i + 2]
+            y2 = vertices[i + 3]
+            x3 = vertices[i + 4]
+            y3 = vertices[i + 5]
 
-            for y in range(min(y1, y2), max(y1, y2) + 1):
-                for x in range(min(x1, x2), max(x1, x2) + 1):
+            for y in np.arange(min(y1, y2), max(y1, y2) + 1, 0.5):
+                for x in np.arange(min(x1, x2), max(x1, x2) + 1, 0.5):
                     if (
                         test_point(x, y, x1, x2, y1, y2) and
                         test_point(x, y, x2, x3, y2, y3) and
                         test_point(x, y, x3, x1, y3, y1)
                         ):
-                        gpu.GPU.draw_pixel([x, y], gpu.GPU.RGB8, colors.get("emissiveColor", color))
+                        gpu.GPU.draw_pixel([int(x), int(y)], gpu.GPU.RGB8, color)
 
     # --------------------------------------------------------------- #
 
