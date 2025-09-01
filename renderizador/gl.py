@@ -138,16 +138,9 @@ class GL:
             p2 = np.array([x2, y2, z2, 1])
             p3 = np.array([x3, y3, z3, 1])
 
-            # Projection Matrix
-            focal = 20
-            projectionMatrix = np.array([
-                [1, 0, 0, 0],
-                [0, 1, 0, 0],
-                [0, 0, 0, -focal],
-                [0, 0, 0, 1/focal]
-            ])
+            # mundo, view, projection
 
-            projVertices = projectionMatrix @ np.array([p1, p2, p3]).T
+            # projVertices = allMatrix @ np.array([p1, p2, p3]).T
 
             # Dividing by w
             projVertices[0] = projVertices[0, :] / projVertices[3, :]
@@ -156,6 +149,7 @@ class GL:
 
             # Converting points to single list
             projVertices = projVertices[:2, :].flatten()
+            print(projVertices)
 
             GL.triangleSet2D(projVertices, colors)
 
