@@ -121,26 +121,45 @@ class GL:
     @staticmethod
     def triangleSet(point, colors):
         """Função usada para renderizar TriangleSet."""
-        # https://www.web3d.org/specifications/X3Dv4/ISO-IEC19775-1v4-IS/Part01/components/rendering.html#TriangleSet
-        # Nessa função você receberá pontos no parâmetro point, esses pontos são uma lista
-        # de pontos x, y, e z sempre na ordem. Assim point[0] é o valor da coordenada x do
-        # primeiro ponto, point[1] o valor y do primeiro ponto, point[2] o valor z da
-        # coordenada z do primeiro ponto. Já point[3] é a coordenada x do segundo ponto e
-        # assim por diante.
-        # No TriangleSet os triângulos são informados individualmente, assim os três
-        # primeiros pontos definem um triângulo, os três próximos pontos definem um novo
-        # triângulo, e assim por diante.
-        # O parâmetro colors é um dicionário com os tipos cores possíveis, você pode assumir
-        # inicialmente, para o TriangleSet, o desenho das linhas com a cor emissiva
-        # (emissiveColor), conforme implementar novos materias você deverá suportar outros
-        # tipos de cores.
 
-        # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
-        print("TriangleSet : pontos = {0}".format(point)) # imprime no terminal pontos
-        print("TriangleSet : colors = {0}".format(colors)) # imprime no terminal as cores
+        color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
+        for i in range(0, len(point), 9):
+            x1 = point[i]
+            y1 = point[i + 1]
+            z1 = point[i + 2]
+            x2 = point[i + 3]
+            y2 = point[i + 4]
+            z2 = point[i + 5]
+            x3 = point[i + 6]
+            y3 = point[i + 7]
+            z3 = point[i + 8]
 
-        # Exemplo de desenho de um pixel branco na coordenada 10, 10
-        gpu.GPU.draw_pixel([10, 10], gpu.GPU.RGB8, [255, 255, 255])  # altera pixel
+            # Homogenous coordinates
+            p1 = np.array([x1, y1, z1, 1])
+            p2 = np.array([x2, y2, z2, 1])
+            p3 = np.array([x3, y3, z3, 1])
+
+            # Projection Matrix
+            focal = 20
+            projectionMatrix = np.array([
+                [1, 0, 0, 0],
+                [0, 1, 0, 0],
+                [0, 0, 0, -focal],
+                [0, 0, 0, 1/focal]
+            ])
+
+            projVertices = projectionMatrix @ np.array([p1, p2, p3]).T
+
+            # Dividing by w
+            projVertices[0] = projVertices[0, :] / projVertices[3, :]
+            projVertices[1] = projVertices[1, :] / projVertices[3, :]
+            projVertices[2] = projVertices[2, :] / projVertices[3, :]
+
+            # Converting to 2D
+            projVertices = np.vstack((projVertices[0, :], projVertices[1, :]))  
+            projVertices = projVertices.T
+
+            GL.triangleSet2D(projVertices, color)
 
     # --------------------------------------------------------------- #
 
