@@ -122,7 +122,6 @@ class GL:
     def triangleSet(point, colors):
         """Função usada para renderizar TriangleSet."""
 
-        color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
         for i in range(0, len(point), 9):
             x1 = point[i]
             y1 = point[i + 1]
@@ -155,11 +154,10 @@ class GL:
             projVertices[1] = projVertices[1, :] / projVertices[3, :]
             projVertices[2] = projVertices[2, :] / projVertices[3, :]
 
-            # Converting to 2D
-            projVertices = np.vstack((projVertices[0, :], projVertices[1, :]))  
-            projVertices = projVertices.T
+            # Converting points to single list
+            projVertices = projVertices[:2, :].flatten()
 
-            GL.triangleSet2D(projVertices, color)
+            GL.triangleSet2D(projVertices, colors)
 
     # --------------------------------------------------------------- #
 
