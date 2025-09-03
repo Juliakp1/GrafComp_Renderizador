@@ -24,6 +24,9 @@ class GL:
     near = 0.01   # plano de corte próximo
     far = 1000    # plano de corte distante
 
+    VIEW = []
+    STACK = []
+
     @staticmethod
     def setup(width, height, near=0.01, far=1000):
         """Definr parametros para câmera de razão de aspecto, plano próximo e distante."""
@@ -118,31 +121,30 @@ class GL:
 
     # --------------------------------------------------------------- #
 
+    def perspectiveTransformMatrix(near, far, right, top):
+        return np.array([
+            [near / right, 0, 0, 0],
+            [0, near / top, 0, 0],
+            [0, 0, -((far + near) / (far - near)), (-2 * far * near) / (far - near)],
+            [0, 0, -1, 0]
+        ])
+    
+    def viewportTransformMatrix(width, height):
+        return np.array([
+            [width / 2, 0, 0, width / 2],
+            [0, -(height / 2), 0, height / 2],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
+        ])
+
     @staticmethod
     def triangleSet(point, colors):
         """Função usada para renderizar TriangleSet."""
 
-        def perspectiveTransformMatrix(near, far, right, top):
-            return np.array([
-                [near / right, 0, 0, 0],
-                [0, near / top, 0, 0],
-                [0, 0, -((far + near) / (far - near)), (-2 * far * near) / (far - near)],
-                [0, 0, -1, 0]
-            ])
-        
-        def viewportTransformMatrix(width, height):
-            return np.array([
-                [width / 2, 0, 0, width / 2],
-                [0, -(height / 2), 0, height / 2],
-                [0, 0, 1, 0],
-                [0, 0, 0, 1]
-            ])
-        
-
         top = GL.near * np.tan(np.radians(fieldOfView) / 2)
         right = top * (GL.width / GL.height)
-        perspMatrix = perspectiveTransformMatrix(GL.near, GL.far, right, top)
-        viewportMatrix = viewportTransformMatrix(GL.width, GL.height)
+        perspMatrix = GL.perspectiveTransformMatrix(GL.near, GL.far, right, top)
+        viewportMatrix = GL.viewportTransformMatrix(GL.width, GL.height)
 
         for i in range(0, len(point), 9):
             x1 = point[i]
@@ -161,12 +163,14 @@ class GL:
             p3 = np.array([x3, y3, z3, 1])
 
             # Matrix multiplication
-            projVertices = viewportMatrix @ perspMatrix @ np.array([p1, p2, p3]).T
+            projVertices = perspMatrix @ GL.VIEW @ GL.STACK @ np.array([p1, p2, p3]).T
 
             # Dividing by w
             projVertices[0] = projVertices[0, :] / projVertices[3, :]
             projVertices[1] = projVertices[1, :] / projVertices[3, :]
             projVertices[2] = projVertices[2, :] / projVertices[3, :]
+
+            projVertices = viewportMatrix @ projVertices
 
             # Converting points to single list
             projVertices = projVertices[:2, :].flatten()
@@ -188,6 +192,26 @@ class GL:
         print("position = {0} ".format(position), end='')
         print("orientation = {0} ".format(orientation), end='')
         print("fieldOfView = {0} ".format(fieldOfView))
+
+        def lookAtMatrix(eye, target, up):
+            zaxis = (eye - target)
+            zaxis /= np.linalg.norm(zaxis)
+            xaxis = np.cross(up, zaxis)
+            xaxis /= np.linalg.norm(xaxis)
+            yaxis = np.cross(zaxis, xaxis)
+            yaxis /= np.linalg.norm(yaxis)
+
+            return np.array([
+                [xaxis[0], yaxis[0], zaxis[0], 0],
+                [xaxis[1], yaxis[1], zaxis[1], 0],
+                [xaxis[2], yaxis[2], zaxis[2], 0],
+                [-np.dot(xaxis, eye), -np.dot(yaxis, eye), -np.dot(zaxis, eye), 1]
+            ])
+
+        eye = np.array(position)
+        # target is position and orientation
+        target = 
+        GL.VIEW = lookAtMatrix(eye, target, np.array([0, 1, 0]))
 
     # --------------------------------------------------------------- #
 
@@ -214,17 +238,17 @@ class GL:
             print("rotation = {0} ".format(rotation), end='') # imprime no terminal
         print("")
 
+        if GL.STACK == []:
+            GL.STACK.append(GL.VIEW.copy())
+        else:
+            GL.STACK[-1] = GL.VIEW
+
     # --------------------------------------------------------------- #
 
     @staticmethod
     def transform_out():
         """Função usada para renderizar (na verdade coletar os dados) de Transform."""
-        # A função transform_out será chamada quando se sair em um nó X3D do tipo Transform do
-        # grafo de cena. Não são passados valores, porém quando se sai de um nó transform se
-        # deverá recuperar a matriz de transformação dos modelos do mundo da estrutura de
-        # pilha implementada.
-
-        # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
+        GL.STACK.pop()
         print("Saindo de Transform")
 
     # --------------------------------------------------------------- #
