@@ -122,6 +122,28 @@ class GL:
     def triangleSet(point, colors):
         """Função usada para renderizar TriangleSet."""
 
+        def perspectiveTransformMatrix(near, far, right, top):
+            return np.array([
+                [near / right, 0, 0, 0],
+                [0, near / top, 0, 0],
+                [0, 0, -((far + near) / (far - near)), (-2 * far * near) / (far - near)],
+                [0, 0, -1, 0]
+            ])
+        
+        def viewportTransformMatrix(width, height):
+            return np.array([
+                [width / 2, 0, 0, width / 2],
+                [0, -(height / 2), 0, height / 2],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1]
+            ])
+        
+
+        top = GL.near * np.tan(np.radians(fieldOfView) / 2)
+        right = top * (GL.width / GL.height)
+        perspMatrix = perspectiveTransformMatrix(GL.near, GL.far, right, top)
+        viewportMatrix = viewportTransformMatrix(GL.width, GL.height)
+
         for i in range(0, len(point), 9):
             x1 = point[i]
             y1 = point[i + 1]
@@ -138,9 +160,8 @@ class GL:
             p2 = np.array([x2, y2, z2, 1])
             p3 = np.array([x3, y3, z3, 1])
 
-            # mundo, view, projection
-
-            # projVertices = allMatrix @ np.array([p1, p2, p3]).T
+            # Matrix multiplication
+            projVertices = viewportMatrix @ perspMatrix @ np.array([p1, p2, p3]).T
 
             # Dividing by w
             projVertices[0] = projVertices[0, :] / projVertices[3, :]
