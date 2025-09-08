@@ -23,6 +23,8 @@ class GL:
     height = 600  # altura da tela
     near = 0.01   # plano de corte próximo
     far = 1000    # plano de corte distante
+    fovx = 60
+    fovy = 60
 
     VIEW = []
     STACK = []
@@ -141,7 +143,7 @@ class GL:
     def triangleSet(point, colors):
         """Função usada para renderizar TriangleSet."""
 
-        top = GL.near * np.tan(np.radians(fieldOfView) / 2)
+        top = GL.near * np.tan(np.radians(GL.fovy) / 2)
         right = top * (GL.width / GL.height)
         perspMatrix = GL.perspectiveTransformMatrix(GL.near, GL.far, right, top)
         viewportMatrix = GL.viewportTransformMatrix(GL.width, GL.height)
@@ -183,15 +185,10 @@ class GL:
     @staticmethod
     def viewpoint(position, orientation, fieldOfView):
         """Função usada para renderizar (na verdade coletar os dados) de Viewpoint."""
-        # Na função de viewpoint você receberá a posição, orientação e campo de visão da
-        # câmera virtual. Use esses dados para poder calcular e criar a matriz de projeção
-        # perspectiva para poder aplicar nos pontos dos objetos geométricos.
-
-        # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
-        print("Viewpoint : ", end='')
-        print("position = {0} ".format(position), end='')
-        print("orientation = {0} ".format(orientation), end='')
-        print("fieldOfView = {0} ".format(fieldOfView))
+        # print("Viewpoint : ", end='')
+        # print("position = {0} ".format(position), end='')
+        # print("orientation = {0} ".format(orientation), end='')
+        # print("fieldOfView = {0} ".format(fieldOfView))
 
         def lookAtMatrix(eye, target, up):
             zaxis = (eye - target)
@@ -208,9 +205,11 @@ class GL:
                 [-np.dot(xaxis, eye), -np.dot(yaxis, eye), -np.dot(zaxis, eye), 1]
             ])
 
+        GL.fovx = fieldOfView
+        GL.fovy = 2 * np.arctan(np.tan(np.radians(fieldOfView) / 2) / (GL.width / GL.height))
+
         eye = np.array(position)
-        # target is position and orientation
-        target = 
+        target = eye @ np.array(orientation) # (size 4 is different from 3) TODO
         GL.VIEW = lookAtMatrix(eye, target, np.array([0, 1, 0]))
 
     # --------------------------------------------------------------- #
@@ -218,30 +217,32 @@ class GL:
     @staticmethod
     def transform_in(translation, scale, rotation):
         """Função usada para renderizar (na verdade coletar os dados) de Transform."""
-        # A função transform_in será chamada quando se entrar em um nó X3D do tipo Transform
-        # do grafo de cena. Os valores passados são a escala em um vetor [x, y, z]
-        # indicando a escala em cada direção, a translação [x, y, z] nas respectivas
-        # coordenadas e finalmente a rotação por [x, y, z, t] sendo definida pela rotação
-        # do objeto ao redor do eixo x, y, z por t radianos, seguindo a regra da mão direita.
-        # Quando se entrar em um nó transform se deverá salvar a matriz de transformação dos
-        # modelos do mundo para depois potencialmente usar em outras chamadas. 
-        # Quando começar a usar Transforms dentre de outros Transforms, mais a frente no curso
-        # Você precisará usar alguma estrutura de dados pilha para organizar as matrizes.
 
-        # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
-        print("Transform : ", end='')
-        if translation:
-            print("translation = {0} ".format(translation), end='') # imprime no terminal
-        if scale:
-            print("scale = {0} ".format(scale), end='') # imprime no terminal
-        if rotation:
-            print("rotation = {0} ".format(rotation), end='') # imprime no terminal
-        print("")
+        def translationMatrix(translation):
+            T = np.eye(4)
+            T[0, 3] = translation[0]
+            T[1, 3] = translation[1]
+            T[2, 3] = translation[2]
+            return T
+
+        def scaleMatrix(scale):
+            S = np.eye(4)
+            S[0, 0] = scale[0]
+            S[1, 1] = scale[1]
+            S[2, 2] = scale[2]
+            return S
+
+        def rotationMatrix(rotation):
+            R = np.eye(4)
+            # rotation is a quaternion TODO
+            return R
 
         if GL.STACK == []:
             GL.STACK.append(GL.VIEW.copy())
         else:
-            GL.STACK[-1] = GL.VIEW
+            M = GL.STACK[-1]
+            mundo = translationMatrix(translation) @ scaleMatrix(scale) @ rotationMatrix(rotation)
+            GL.STACK.append(M @ mundo)
 
     # --------------------------------------------------------------- #
 
