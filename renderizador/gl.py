@@ -40,6 +40,23 @@ class GL:
     # --------------------------------------------------------------- #
 
     @staticmethod
+    def quaternionToRotationMatrix(q):
+        """Converts a quaternion into a 3x3 rotation matrix."""
+        q_norm = np.linalg.norm(q)
+        if q_norm > 0:
+            q = q / q_norm
+        else:
+            q = np.array([0, 0, 0, 1])
+
+        x, y, z, w = q
+        
+        return np.array([
+            [1 - 2*y**2 - 2*z**2, 2*x*y - 2*w*z, 2*x*z + 2*w*y],
+            [2*x*y + 2*w*z, 1 - 2*x**2 - 2*z**2, 2*y*z - 2*w*x],
+            [2*x*z - 2*w*y, 2*y*z + 2*w*x, 1 - 2*x**2 - 2*y**2]
+        ])
+
+    @staticmethod
     def polypoint2D(point, colors):
         """Função usada para renderizar Polypoint2D."""
         color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
@@ -149,35 +166,41 @@ class GL:
         viewportMatrix = GL.viewportTransformMatrix(GL.width, GL.height)
 
         for i in range(0, len(point), 9):
-            x1 = point[i]
-            y1 = point[i + 1]
-            z1 = point[i + 2]
-            x2 = point[i + 3]
-            y2 = point[i + 4]
-            z2 = point[i + 5]
-            x3 = point[i + 6]
-            y3 = point[i + 7]
-            z3 = point[i + 8]
+            x1, y1, z1 = point[i:i+3]
+            x2, y2, z2 = point[i+3:i+6]
+            x3, y3, z3 = point[i+6:i+9]
 
             # Homogenous coordinates
             p1 = np.array([x1, y1, z1, 1])
             p2 = np.array([x2, y2, z2, 1])
             p3 = np.array([x3, y3, z3, 1])
 
-            # Matrix multiplication
-            projVertices = perspMatrix @ GL.VIEW @ GL.STACK @ np.array([p1, p2, p3]).T
+            # Apply the Model, View, and Projection matrices to each vertex.
+            proj_p1 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p1
+            proj_p2 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p2
+            proj_p3 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p3
 
-            # Dividing by w
-            projVertices[0] = projVertices[0, :] / projVertices[3, :]
-            projVertices[1] = projVertices[1, :] / projVertices[3, :]
-            projVertices[2] = projVertices[2, :] / projVertices[3, :]
+            # Divide by w (Perspective Divide)
+            p1_clip = proj_p1 / (proj_p1[3] if proj_p1[3] != 0 else 0.1)
+            p2_clip = proj_p2 / (proj_p2[3] if proj_p2[3] != 0 else 0.1)
+            p3_clip = proj_p3 / (proj_p3[3] if proj_p3[3] != 0 else 0.1)
 
-            projVertices = viewportMatrix @ projVertices
+            # Apply the viewport transformation
+            p1_viewport = viewportMatrix @ p1_clip
+            p2_viewport = viewportMatrix @ p2_clip
+            p3_viewport = viewportMatrix @ p3_clip
 
-            # Converting points to single list
-            projVertices = projVertices[:2, :].flatten()
-            print(projVertices)
+            # Final 2D coordinates
+            projVertices = np.array([
+                p1_viewport[0], p1_viewport[1],
+                p2_viewport[0], p2_viewport[1],
+                p3_viewport[0], p3_viewport[1]
+            ])
 
+            print("Point 1 : {0}".format(p1))
+            print("Point 2 : {0}".format(p2))
+            print("Point 3 : {0}".format(p3))
+            print("TriangleSet : {0}".format(projVertices))
             GL.triangleSet2D(projVertices, colors)
 
     # --------------------------------------------------------------- #
@@ -185,10 +208,10 @@ class GL:
     @staticmethod
     def viewpoint(position, orientation, fieldOfView):
         """Função usada para renderizar (na verdade coletar os dados) de Viewpoint."""
-        # print("Viewpoint : ", end='')
-        # print("position = {0} ".format(position), end='')
-        # print("orientation = {0} ".format(orientation), end='')
-        # print("fieldOfView = {0} ".format(fieldOfView))
+        print("Viewpoint : ", end='')
+        print("position = {0} ".format(position), end='')
+        print("orientation = {0} ".format(orientation), end='')
+        print("fieldOfView = {0} ".format(fieldOfView))
 
         def lookAtMatrix(eye, target, up):
             zaxis = (eye - target)
@@ -209,7 +232,11 @@ class GL:
         GL.fovy = 2 * np.arctan(np.tan(np.radians(fieldOfView) / 2) / (GL.width / GL.height))
 
         eye = np.array(position)
-        target = eye @ np.array(orientation) # (size 4 is different from 3) TODO
+        rot_matrix = GL.quaternionToRotationMatrix(np.array(orientation))
+        forward_vector = np.array([0, 0, -1]) 
+        direction = rot_matrix @ forward_vector
+        target = eye + direction
+        
         GL.VIEW = lookAtMatrix(eye, target, np.array([0, 1, 0]))
 
     # --------------------------------------------------------------- #
@@ -240,9 +267,9 @@ class GL:
         if GL.STACK == []:
             GL.STACK.append(GL.VIEW.copy())
         else:
-            M = GL.STACK[-1]
-            mundo = translationMatrix(translation) @ scaleMatrix(scale) @ rotationMatrix(rotation)
-            GL.STACK.append(M @ mundo)
+            lastMatrix = GL.STACK[-1]
+            allTransforms = translationMatrix(translation) @ scaleMatrix(scale) @ rotationMatrix(rotation)
+            GL.STACK.append(lastMatrix @ allTransforms)
 
     # --------------------------------------------------------------- #
 
