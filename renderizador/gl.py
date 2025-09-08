@@ -51,10 +51,29 @@ class GL:
         x, y, z, w = q
         
         return np.array([
-            [1 - 2*y**2 - 2*z**2, 2*x*y - 2*w*z, 2*x*z + 2*w*y],
-            [2*x*y + 2*w*z, 1 - 2*x**2 - 2*z**2, 2*y*z - 2*w*x],
-            [2*x*z - 2*w*y, 2*y*z + 2*w*x, 1 - 2*x**2 - 2*y**2]
+            [1 - 2*y**2 - 2*z**2, 2*x*y - 2*w*z, 2*x*z + 2*w*y, 0],
+            [2*x*y + 2*w*z, 1 - 2*x**2 - 2*z**2, 2*y*z - 2*w*x, 0],
+            [2*x*z - 2*w*y, 2*y*z + 2*w*x, 1 - 2*x**2 - 2*y**2, 0],
+            [0, 0, 0, 1]
         ])
+
+    def perspectiveTransformMatrix(near, far, right, top):
+        return np.array([
+            [near / right, 0, 0, 0],
+            [0, near / top, 0, 0],
+            [0, 0, -((far + near) / (far - near)), (-2 * far * near) / (far - near)],
+            [0, 0, -1, 0]
+        ])
+    
+    def viewportTransformMatrix(width, height):
+        return np.array([
+            [width / 2, 0, 0, width / 2],
+            [0, -(height / 2), 0, height / 2],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
+        ])
+    
+    # --------------------------------------------------------------- #
 
     @staticmethod
     def polypoint2D(point, colors):
@@ -140,22 +159,6 @@ class GL:
 
     # --------------------------------------------------------------- #
 
-    def perspectiveTransformMatrix(near, far, right, top):
-        return np.array([
-            [near / right, 0, 0, 0],
-            [0, near / top, 0, 0],
-            [0, 0, -((far + near) / (far - near)), (-2 * far * near) / (far - near)],
-            [0, 0, -1, 0]
-        ])
-    
-    def viewportTransformMatrix(width, height):
-        return np.array([
-            [width / 2, 0, 0, width / 2],
-            [0, -(height / 2), 0, height / 2],
-            [0, 0, 1, 0],
-            [0, 0, 0, 1]
-        ])
-
     @staticmethod
     def triangleSet(point, colors):
         """Função usada para renderizar TriangleSet."""
@@ -176,9 +179,13 @@ class GL:
             p3 = np.array([x3, y3, z3, 1])
 
             # Apply the Model, View, and Projection matrices to each vertex.
-            proj_p1 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p1
-            proj_p2 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p2
-            proj_p3 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p3
+            t = GL.translationMatrix(np.array([0, 0, 5])) @ GL.quaternionToRotationMatrix(np.array([-1, 0, 0, 3.14]))
+            print("aaa ", perspMatrix @ GL.VIEW @ t @ p1)
+            print("aaa ", np.array([]) @ GL.VIEW @ t @ p1)
+            # proj_p1 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p1
+            proj_p1 = perspMatrix @ GL.VIEW @ t @ p1
+            proj_p2 = perspMatrix @ GL.VIEW @ t @ p2
+            proj_p3 = perspMatrix @ GL.VIEW @ t @ p3
 
             # Divide by w (Perspective Divide)
             p1_clip = proj_p1 / (proj_p1[3] if proj_p1[3] != 0 else 0.1)
@@ -197,10 +204,17 @@ class GL:
                 p3_viewport[0], p3_viewport[1]
             ])
 
-            print("Point 1 : {0}".format(p1))
-            print("Point 2 : {0}".format(p2))
-            print("Point 3 : {0}".format(p3))
-            print("TriangleSet : {0}".format(projVertices))
+            print("\nView Matrix : {0}".format(GL.VIEW))
+            print("Stack Top Matrix : {0}".format(GL.STACK[-1]))
+            print("Perspective Matrix : {0}".format(perspMatrix))
+            print("Viewport Matrix : {0}".format(viewportMatrix))
+
+            print("\nPoint 1 : {0}".format(p1))
+            print("Projected Point 1 : {0}".format(p1_viewport))
+            print("Clip Point 1 : {0}".format(p1_clip))
+            print("Point 1 viewport : {0}".format(p1_viewport))
+
+            print("\nTriangleSet : {0}\n".format(projVertices))
             GL.triangleSet2D(projVertices, colors)
 
     # --------------------------------------------------------------- #
@@ -213,44 +227,28 @@ class GL:
         print("orientation = {0} ".format(orientation), end='')
         print("fieldOfView = {0} ".format(fieldOfView))
 
-        def lookAtMatrix(eye, target, up):
-            zaxis = (eye - target)
-            zaxis /= np.linalg.norm(zaxis)
-            xaxis = np.cross(up, zaxis)
-            xaxis /= np.linalg.norm(xaxis)
-            yaxis = np.cross(zaxis, xaxis)
-            yaxis /= np.linalg.norm(yaxis)
-
-            return np.array([
-                [xaxis[0], yaxis[0], zaxis[0], 0],
-                [xaxis[1], yaxis[1], zaxis[1], 0],
-                [xaxis[2], yaxis[2], zaxis[2], 0],
-                [-np.dot(xaxis, eye), -np.dot(yaxis, eye), -np.dot(zaxis, eye), 1]
-            ])
-
         GL.fovx = fieldOfView
         GL.fovy = 2 * np.arctan(np.tan(np.radians(fieldOfView) / 2) / (GL.width / GL.height))
 
-        eye = np.array(position)
-        rot_matrix = GL.quaternionToRotationMatrix(np.array(orientation))
-        forward_vector = np.array([0, 0, -1]) 
-        direction = rot_matrix @ forward_vector
-        target = eye + direction
+        # GL.VIEW = GL.translationMatrix(position) @ GL.quaternionToRotationMatrix(orientation)
+        GL.VIEW = np.array([[-1., 0., 0., 0.],
+                            [0., 1., 0., 0.],
+                            [0., 0., -1., -5.],
+                            [0., 0., 0., 1.]])
         
-        GL.VIEW = lookAtMatrix(eye, target, np.array([0, 1, 0]))
-
     # --------------------------------------------------------------- #
 
     @staticmethod
+    def translationMatrix(translation):
+        T = np.eye(4)
+        T[0, 3] = translation[0]
+        T[1, 3] = translation[1]
+        T[2, 3] = translation[2]
+        return T
+    
+    @staticmethod
     def transform_in(translation, scale, rotation):
         """Função usada para renderizar (na verdade coletar os dados) de Transform."""
-
-        def translationMatrix(translation):
-            T = np.eye(4)
-            T[0, 3] = translation[0]
-            T[1, 3] = translation[1]
-            T[2, 3] = translation[2]
-            return T
 
         def scaleMatrix(scale):
             S = np.eye(4)
@@ -259,17 +257,14 @@ class GL:
             S[2, 2] = scale[2]
             return S
 
-        def rotationMatrix(rotation):
-            R = np.eye(4)
-            # rotation is a quaternion TODO
-            return R
-
         if GL.STACK == []:
-            GL.STACK.append(GL.VIEW.copy())
+            GL.STACK.append(np.eye(4))
         else:
             lastMatrix = GL.STACK[-1]
-            allTransforms = translationMatrix(translation) @ scaleMatrix(scale) @ rotationMatrix(rotation)
-            GL.STACK.append(lastMatrix @ allTransforms)
+            allTransforms = GL.translationMatrix(translation) @ scaleMatrix(scale) @ GL.quaternionToRotationMatrix(rotation)
+            GL.STACK.append(allTransforms @ lastMatrix)
+        
+        print(translation, scale, rotation)
 
     # --------------------------------------------------------------- #
 
