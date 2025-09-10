@@ -23,8 +23,12 @@ class GL:
     height = 600  # altura da tela
     near = 0.01   # plano de corte próximo
     far = 1000    # plano de corte distante
-    fovx = 60
-    fovy = 60
+    top = 0      # coordenada top do plano de corte
+    bottom = 0   
+    right = 0    # coordenada right do plano de corte
+    left = 0
+    fovx = 60   # campo de visão horizontal
+    fovy = 60   # campo de visão vertical
 
     VIEW = []
     STACK = []
@@ -36,6 +40,12 @@ class GL:
         GL.height = height
         GL.near = near
         GL.far = far
+
+        GL.top = near * math.tan(GL.fovx)
+        GL.bottom = -GL.top
+        GL.right = GL.top * (height / width)
+        GL.left = -GL.right
+        print("GL setup : width = {0}, height = {1}, near = {2}, far = {3}, \ntop = {4}, bottom = {5}, right = {6}, left = {7}".format(width, height, near, far, GL.top, GL.bottom, GL.right, GL.left))
 
     # --------------------------------------------------------------- #
 
@@ -56,7 +66,16 @@ class GL:
             [2*x*z - 2*w*y, 2*y*z + 2*w*x, 1 - 2*x**2 - 2*y**2, 0],
             [0, 0, 0, 1]
         ])
+    
+    @staticmethod
+    def translationMatrix(translation):
+        T = np.eye(4)
+        T[0, 3] = translation[0]
+        T[1, 3] = translation[1]
+        T[2, 3] = translation[2]
+        return T
 
+    @staticmethod
     def perspectiveTransformMatrix(near, far, right, top):
         # should not be in scientific notation
         return np.array([
@@ -65,6 +84,8 @@ class GL:
             [0, 0, -(far + near)/(far - near), -(2 * far * near)/(far - near)],
             [0, 0, -1, 0]
         ])
+    
+    @staticmethod
     def viewportTransformMatrix(width, height):
         return np.array([
             [width / 2, 0, 0, width / 2],
@@ -163,9 +184,7 @@ class GL:
     def triangleSet(point, colors):
         """Função usada para renderizar TriangleSet."""
 
-        top = GL.near * np.tan(np.radians(GL.fovy) / 2)
-        right = top * (GL.width / GL.height)
-        perspMatrix = GL.perspectiveTransformMatrix(GL.near, GL.far, right, top)
+        perspMatrix = GL.perspectiveTransformMatrix(GL.near, GL.far, GL.right, GL.top)
         viewportMatrix = GL.viewportTransformMatrix(GL.width, GL.height)
 
         for i in range(0, len(point), 9):
@@ -227,17 +246,12 @@ class GL:
         GL.fovx = fieldOfView
         GL.fovy = 2 * np.arctan(np.tan(np.radians(fieldOfView) / 2) / (GL.width / GL.height))
 
-        GL.VIEW = GL.translationMatrix(position) @ GL.quaternionToRotationMatrix(orientation)
+        x, y, z, angle = orientation
+        orientationQuaternion = np.array([x * math.sin(angle / 2), y * math.sin(angle / 2), z * math.sin(angle / 2), math.cos(angle / 2)])
+            
+        GL.VIEW = GL.translationMatrix(position) @ GL.quaternionToRotationMatrix(orientationQuaternion)
         
     # --------------------------------------------------------------- #
-
-    @staticmethod
-    def translationMatrix(translation):
-        T = np.eye(4)
-        T[0, 3] = translation[0]
-        T[1, 3] = translation[1]
-        T[2, 3] = translation[2]
-        return T
     
     @staticmethod
     def transform_in(translation, scale, rotation):
@@ -254,10 +268,10 @@ class GL:
             GL.STACK.append(np.eye(4))
         else:
             lastMatrix = GL.STACK[-1]
-            allTransforms = GL.translationMatrix(translation) @ scaleMatrix(scale) @ GL.quaternionToRotationMatrix(rotation)
+            x, y, z, angle = rotation
+            rotationQuaternion = np.array([x * math.sin(angle / 2), y * math.sin(angle / 2), z * math.sin(angle / 2), math.cos(angle / 2)])
+            allTransforms = GL.translationMatrix(translation) @ scaleMatrix(scale) @ GL.quaternionToRotationMatrix(rotationQuaternion)
             GL.STACK.append(allTransforms @ lastMatrix)
-
-        print("Transforms:", translation, scale, rotation, "\n")
 
     # --------------------------------------------------------------- #
 
