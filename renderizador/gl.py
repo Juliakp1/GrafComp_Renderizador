@@ -58,13 +58,13 @@ class GL:
         ])
 
     def perspectiveTransformMatrix(near, far, right, top):
+        # should not be in scientific notation
         return np.array([
-            [near / right, 0, 0, 0],
-            [0, near / top, 0, 0],
-            [0, 0, -((far + near) / (far - near)), (-2 * far * near) / (far - near)],
+            [near/right, 0, 0, 0],
+            [0, near/top, 0, 0],
+            [0, 0, -(far + near)/(far - near), -(2 * far * near)/(far - near)],
             [0, 0, -1, 0]
         ])
-    
     def viewportTransformMatrix(width, height):
         return np.array([
             [width / 2, 0, 0, width / 2],
@@ -179,18 +179,14 @@ class GL:
             p3 = np.array([x3, y3, z3, 1])
 
             # Apply the Model, View, and Projection matrices to each vertex.
-            t = GL.translationMatrix(np.array([0, 0, 5])) @ GL.quaternionToRotationMatrix(np.array([-1, 0, 0, 3.14]))
-            print("aaa ", perspMatrix @ GL.VIEW @ t @ p1)
-            print("aaa ", np.array([]) @ GL.VIEW @ t @ p1)
-            # proj_p1 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p1
-            proj_p1 = perspMatrix @ GL.VIEW @ t @ p1
-            proj_p2 = perspMatrix @ GL.VIEW @ t @ p2
-            proj_p3 = perspMatrix @ GL.VIEW @ t @ p3
+            proj_p1 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p1
+            proj_p2 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p2
+            proj_p3 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p3
 
             # Divide by w (Perspective Divide)
-            p1_clip = proj_p1 / (proj_p1[3] if proj_p1[3] != 0 else 0.1)
-            p2_clip = proj_p2 / (proj_p2[3] if proj_p2[3] != 0 else 0.1)
-            p3_clip = proj_p3 / (proj_p3[3] if proj_p3[3] != 0 else 0.1)
+            p1_clip = proj_p1 / proj_p1[3] 
+            p2_clip = proj_p2 / proj_p2[3]
+            p3_clip = proj_p3 / proj_p3[3]
 
             # Apply the viewport transformation
             p1_viewport = viewportMatrix @ p1_clip
@@ -210,7 +206,8 @@ class GL:
             print("Viewport Matrix : {0}".format(viewportMatrix))
 
             print("\nPoint 1 : {0}".format(p1))
-            print("Projected Point 1 : {0}".format(p1_viewport))
+            print("Point 1 b4 proj ", GL.VIEW @ GL.STACK[-1] @ p1)
+            print("Projected Point 1 : {0}".format(proj_p1))
             print("Clip Point 1 : {0}".format(p1_clip))
             print("Point 1 viewport : {0}".format(p1_viewport))
 
@@ -230,11 +227,7 @@ class GL:
         GL.fovx = fieldOfView
         GL.fovy = 2 * np.arctan(np.tan(np.radians(fieldOfView) / 2) / (GL.width / GL.height))
 
-        # GL.VIEW = GL.translationMatrix(position) @ GL.quaternionToRotationMatrix(orientation)
-        GL.VIEW = np.array([[-1., 0., 0., 0.],
-                            [0., 1., 0., 0.],
-                            [0., 0., -1., -5.],
-                            [0., 0., 0., 1.]])
+        GL.VIEW = GL.translationMatrix(position) @ GL.quaternionToRotationMatrix(orientation)
         
     # --------------------------------------------------------------- #
 
@@ -263,8 +256,8 @@ class GL:
             lastMatrix = GL.STACK[-1]
             allTransforms = GL.translationMatrix(translation) @ scaleMatrix(scale) @ GL.quaternionToRotationMatrix(rotation)
             GL.STACK.append(allTransforms @ lastMatrix)
-        
-        print(translation, scale, rotation)
+
+        print("Transforms:", translation, scale, rotation, "\n")
 
     # --------------------------------------------------------------- #
 
