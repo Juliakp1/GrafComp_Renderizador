@@ -23,15 +23,15 @@ class GL:
     height = 600  # altura da tela
     near = 0.01   # plano de corte próximo
     far = 1000    # plano de corte distante
-    top = 0      # coordenada top do plano de corte
+    top = 0.004142      # coordenada top do plano de corte
     bottom = 0   
-    right = 0    # coordenada right do plano de corte
+    right = 0.005522    # coordenada right do plano de corte
     left = 0
     fovx = 60   # campo de visão horizontal
     fovy = 60   # campo de visão vertical
 
     VIEW = []
-    STACK = []
+    STACK = [np.eye(4)]
 
     @staticmethod
     def setup(width, height, near=0.01, far=1000):
@@ -41,11 +41,11 @@ class GL:
         GL.near = near
         GL.far = far
 
-        GL.top = near * math.tan(GL.fovx)
+        # GL.top = near * math.tan(GL.fovy)
         GL.bottom = -GL.top
-        GL.right = GL.top * (height / width)
+        # GL.right = GL.top * (height / width)
         GL.left = -GL.right
-        print("GL setup : width = {0}, height = {1}, near = {2}, far = {3}, \ntop = {4}, bottom = {5}, right = {6}, left = {7}".format(width, height, near, far, GL.top, GL.bottom, GL.right, GL.left))
+        print("width = {0}, height = {1}, near = {2}, far = {3}, \ntop = {4}, bottom = {5}, right = {6}, left = {7}\n".format(width, height, near, far, GL.top, GL.bottom, GL.right, GL.left))
 
     # --------------------------------------------------------------- #
 
@@ -186,7 +186,7 @@ class GL:
 
         perspMatrix = GL.perspectiveTransformMatrix(GL.near, GL.far, GL.right, GL.top)
         viewportMatrix = GL.viewportTransformMatrix(GL.width, GL.height)
-
+        
         for i in range(0, len(point), 9):
             x1, y1, z1 = point[i:i+3]
             x2, y2, z2 = point[i+3:i+6]
@@ -201,6 +201,7 @@ class GL:
             proj_p1 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p1
             proj_p2 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p2
             proj_p3 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p3
+
 
             # Divide by w (Perspective Divide)
             p1_clip = proj_p1 / proj_p1[3] 
@@ -219,18 +220,18 @@ class GL:
                 p3_viewport[0], p3_viewport[1]
             ])
 
-            print("\nView Matrix : {0}".format(GL.VIEW))
-            print("Stack Top Matrix : {0}".format(GL.STACK[-1]))
-            print("Perspective Matrix : {0}".format(perspMatrix))
-            print("Viewport Matrix : {0}".format(viewportMatrix))
+            # print("\nView Matrix : {0}".format(GL.VIEW))
+            # print("Stack Top Matrix : {0}".format(GL.STACK[-1]))
+            # print("Perspective Matrix : {0}".format(perspMatrix))
+            # print("Viewport Matrix : {0}".format(viewportMatrix))
 
-            print("\nPoint 1 : {0}".format(p1))
-            print("Point 1 b4 proj ", GL.VIEW @ GL.STACK[-1] @ p1)
-            print("Projected Point 1 : {0}".format(proj_p1))
-            print("Clip Point 1 : {0}".format(p1_clip))
-            print("Point 1 viewport : {0}".format(p1_viewport))
+            # print("\nPoint 1 : {0}".format(p1))
+            # print("Point 1 b4 proj ", GL.VIEW @ GL.STACK[-1] @ p1)
+            # print("Projected Point 1 : {0}".format(proj_p1))
+            # print("Clip Point 1 : {0}".format(p1_clip))
+            # print("Point 1 viewport : {0}".format(p1_viewport))
 
-            print("\nTriangleSet : {0}\n".format(projVertices))
+            # print("\nTriangleSet : {0}\n".format(projVertices))
             GL.triangleSet2D(projVertices, colors)
 
     # --------------------------------------------------------------- #
@@ -264,14 +265,14 @@ class GL:
             S[2, 2] = scale[2]
             return S
 
-        if GL.STACK == []:
-            GL.STACK.append(np.eye(4))
-        else:
-            lastMatrix = GL.STACK[-1]
-            x, y, z, angle = rotation
-            rotationQuaternion = np.array([x * math.sin(angle / 2), y * math.sin(angle / 2), z * math.sin(angle / 2), math.cos(angle / 2)])
-            allTransforms = GL.translationMatrix(translation) @ scaleMatrix(scale) @ GL.quaternionToRotationMatrix(rotationQuaternion)
-            GL.STACK.append(allTransforms @ lastMatrix)
+        lastMatrix = GL.STACK[-1]
+
+        x, y, z, angle = rotation
+        rotationQuaternion = np.array([x * math.sin(angle / 2), y * math.sin(angle / 2), z * math.sin(angle / 2), math.cos(angle / 2)])
+        
+        allTransforms = GL.translationMatrix(translation) @ scaleMatrix(scale) @ GL.quaternionToRotationMatrix(rotationQuaternion)
+        
+        GL.STACK.append(allTransforms @ lastMatrix)
 
     # --------------------------------------------------------------- #
 
@@ -279,7 +280,6 @@ class GL:
     def transform_out():
         """Função usada para renderizar (na verdade coletar os dados) de Transform."""
         GL.STACK.pop()
-        print("Saindo de Transform")
 
     # --------------------------------------------------------------- #
 
