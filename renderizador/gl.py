@@ -41,7 +41,7 @@ class GL:
         GL.near = near
         GL.far = far
 
-        # GL.top = near * math.tan(GL.fovy)
+        # GL.top = near * math.tan(GL.fovx)
         GL.bottom = -GL.top
         # GL.right = GL.top * (height / width)
         GL.left = -GL.right
@@ -270,9 +270,9 @@ class GL:
         x, y, z, angle = rotation
         rotationQuaternion = np.array([x * math.sin(angle / 2), y * math.sin(angle / 2), z * math.sin(angle / 2), math.cos(angle / 2)])
         
-        allTransforms = GL.translationMatrix(translation) @ scaleMatrix(scale) @ GL.quaternionToRotationMatrix(rotationQuaternion)
-        
-        GL.STACK.append(allTransforms @ lastMatrix)
+        allTransforms = GL.translationMatrix(translation) @ GL.quaternionToRotationMatrix(rotationQuaternion) @ scaleMatrix(scale)
+    
+        GL.STACK.append(lastMatrix @ allTransforms)
 
     # --------------------------------------------------------------- #
 
