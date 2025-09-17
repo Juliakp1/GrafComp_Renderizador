@@ -27,7 +27,7 @@ class GL:
     bottom = 0   
     right = 0.005522    # coordenada right do plano de corte
     left = 0
-    fovx = 60   # campo de visão horizontal
+    fovDiag = 60 
     fovy = 60   # campo de visão vertical
 
     VIEW = []
@@ -41,11 +41,7 @@ class GL:
         GL.near = near
         GL.far = far
 
-        # GL.top = near * math.tan(GL.fovx)
-        GL.bottom = -GL.top
-        # GL.right = GL.top * (height / width)
-        GL.left = -GL.right
-        print("width = {0}, height = {1}, near = {2}, far = {3}, \ntop = {4}, bottom = {5}, right = {6}, left = {7}\n".format(width, height, near, far, GL.top, GL.bottom, GL.right, GL.left))
+        print("width = {0}, height = {1}, near = {2}, far = {3}".format(width, height, near, far))
 
     # --------------------------------------------------------------- #
 
@@ -244,8 +240,15 @@ class GL:
         print("orientation = {0} ".format(orientation), end='')
         print("fieldOfView = {0} ".format(fieldOfView))
 
-        GL.fovx = fieldOfView
-        GL.fovy = 2 * np.arctan(np.tan(np.radians(fieldOfView) / 2) / (GL.width / GL.height))
+        aspect = GL.width / GL.height
+        GL.fovDiag = fieldOfView
+
+        GL.top = GL.near * math.tan(fieldOfView / 2)
+        GL.bottom = -GL.top
+        GL.right = GL.top * aspect
+        GL.left = -GL.right
+
+        print("Updated fovy = {0}, top = {1}, bottom = {2}, right = {3}, left = {4}".format(GL.fovy, GL.top, GL.bottom, GL.right, GL.left))
 
         x, y, z, angle = orientation
         orientationQuaternion = np.array([x * math.sin(angle / 2), y * math.sin(angle / 2), z * math.sin(angle / 2), math.cos(angle / 2)])
