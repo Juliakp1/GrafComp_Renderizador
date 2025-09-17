@@ -241,8 +241,8 @@ class GL:
 
         x, y, z, angle = orientation
         orientationQuaternion = np.array([x * math.sin(angle / 2), y * math.sin(angle / 2), z * math.sin(angle / 2), math.cos(angle / 2)])
-            
-        GL.VIEW = GL.translationMatrix(position) @ GL.quaternionToRotationMatrix(orientationQuaternion)
+
+        GL.VIEW = GL.quaternionToRotationMatrix(orientationQuaternion) @ GL.translationMatrix(position)
         
     # --------------------------------------------------------------- #
     
@@ -358,19 +358,29 @@ class GL:
         # implementadado um método para a leitura de imagens.
 
         print("\nFaces Length : {0} - Color: {1}".format(len(coord), [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]))
-
+    
         swapDirection = False
         firstPoint = coord[0:3]
-        for i in range(3, len(coord)-6, 3):
+        i = 3
+        while i < len(coord) - 6:
+
+            if firstPoint == -1 or coord[i+1] == -1 or coord[i+2] == -1:
+                i += 1
+                firstPoint = coord[i:i+3]
+                swapDirection = False
+                continue
+            
+            x1, y1, z1 = firstPoint
             x2, y2, z2 = coord[i:i+3]
             x3, y3, z3 = coord[i+3:i+6]
 
             if swapDirection:
-                GL.triangleSet([x2, y2, z2, firstPoint[0], firstPoint[1], firstPoint[2], x3, y3, z3], colors)
+                GL.triangleSet([x2, y2, z2, x1, y1, z1, x3, y3, z3], colors)
             else:
-                GL.triangleSet([firstPoint[0], firstPoint[1], firstPoint[2], x2, y2, z2, x3, y3, z3], colors)
+                GL.triangleSet([x1, y1, z1, x2, y2, z2, x3, y3, z3], colors)
 
             swapDirection = not swapDirection
+            i += 3
             print(i, end=' ', flush=True)
 
     # --------------------------------------------------------------- #
