@@ -358,30 +358,30 @@ class GL:
         # implementadado um método para a leitura de imagens.
 
         print("\nFaces Length : {0} - Color: {1}".format(len(coord), [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]))
-    
-        swapDirection = False
-        firstPoint = coord[0:3]
-        i = 3
-        while i < len(coord) - 6:
+        
+        num_points = len(coord) // 3
+        first_point_index = -1
+        for i, index in enumerate(coordIndex):
 
-            if firstPoint == -1 or coord[i+1] == -1 or coord[i+2] == -1:
-                i += 1
-                firstPoint = coord[i:i+3]
-                swapDirection = False
-                continue
-            
-            x1, y1, z1 = firstPoint
-            x2, y2, z2 = coord[i:i+3]
-            x3, y3, z3 = coord[i+3:i+6]
+            if index == -1:
+                if first_point_index != -1 and i > coordIndex.index(first_point_index) + 2:
+                    
+                    for j in range(coordIndex.index(first_point_index) + 1, i - 1):
+                        p1_idx = first_point_index
+                        p2_idx = coordIndex[j]
+                        p3_idx = coordIndex[j + 1]
 
-            if swapDirection:
-                GL.triangleSet([x2, y2, z2, x1, y1, z1, x3, y3, z3], colors)
-            else:
-                GL.triangleSet([x1, y1, z1, x2, y2, z2, x3, y3, z3], colors)
-
-            swapDirection = not swapDirection
-            i += 3
-            print(i, end=' ', flush=True)
+                        if 0 <= p1_idx < num_points and 0 <= p2_idx < num_points and 0 <= p3_idx < num_points:
+                            x1, y1, z1 = coord[p1_idx * 3 : p1_idx * 3 + 3]
+                            x2, y2, z2 = coord[p2_idx * 3 : p2_idx * 3 + 3]
+                            x3, y3, z3 = coord[p3_idx * 3 : p3_idx * 3 + 3]
+                            
+                            GL.triangleSet([x1, y1, z1, x2, y2, z2, x3, y3, z3], colors)
+                        
+                if i < len(coordIndex) - 1:
+                    first_point_index = coordIndex[i+1]
+            elif first_point_index == -1:
+                first_point_index = index
 
     # --------------------------------------------------------------- #
 
