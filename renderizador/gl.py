@@ -290,27 +290,31 @@ class GL:
     @staticmethod
     def triangleStripSet(point, stripCount, colors):
         """Função usada para renderizar TriangleStripSet."""
-        # https://www.web3d.org/specifications/X3Dv4/ISO-IEC19775-1v4-IS/Part01/components/rendering.html#TriangleStripSet
-        # A função triangleStripSet é usada para desenhar tiras de triângulos interconectados,
-        # você receberá as coordenadas dos pontos no parâmetro point, esses pontos são uma
-        # lista de pontos x, y, e z sempre na ordem. Assim point[0] é o valor da coordenada x
-        # do primeiro ponto, point[1] o valor y do primeiro ponto, point[2] o valor z da
-        # coordenada z do primeiro ponto. Já point[3] é a coordenada x do segundo ponto e assim
-        # por diante. No TriangleStripSet a quantidade de vértices a serem usados é informado
-        # em uma lista chamada stripCount (perceba que é uma lista). Ligue os vértices na ordem,
-        # primeiro triângulo será com os vértices 0, 1 e 2, depois serão os vértices 1, 2 e 3,
-        # depois 2, 3 e 4, e assim por diante. Cuidado com a orientação dos vértices, ou seja,
-        # todos no sentido horário ou todos no sentido anti-horário, conforme especificado.
 
-        # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
         print("TriangleStripSet : pontos = {0} ".format(point), end='')
         for i, strip in enumerate(stripCount):
-            print("strip[{0}] = {1} ".format(i, strip), end='')
-        print("")
-        print("TriangleStripSet : colors = {0}".format(colors)) # imprime no terminal as cores
+            print("\nstrip[{0}] = {1} ".format(i, strip), end='')
 
-        # Exemplo de desenho de um pixel branco na coordenada 10, 10
-        gpu.GPU.draw_pixel([10, 10], gpu.GPU.RGB8, [255, 255, 255])  # altera pixel
+        # todos os vertices no mesmo sentido (horario ou anti-horario)
+
+        currentIndex = 0
+        for s in range(len(stripCount)):
+            currentIndex += stripCount[s]
+            currentStrip = 0
+
+            for i in range(s, len(point)-6, 3):
+
+                if currentStrip > s:
+                    break
+
+                x1, y1, z1 = point[i:i+3]
+                x2, y2, z2 = point[i+3:i+6]
+                x3, y3, z3 = point[i+6:i+9]
+
+                print("\nTriangleStripSet : {0}, {1}, {2}\n".format([x1, y1, z1], [x2, y2, z2], [x3, y3, z3]))
+
+                GL.triangleSet([x1, y1, z1, x2, y2, z2,x3, y3, z3], colors)
+                currentStrip += 1
 
     # --------------------------------------------------------------- #
 
