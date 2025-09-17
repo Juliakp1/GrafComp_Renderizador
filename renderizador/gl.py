@@ -280,10 +280,21 @@ class GL:
         """Função usada para renderizar TriangleStripSet."""
 
         print("\nStrip Length : {0}".format(len(point)))
+        print("Strip Count : {0}".format(stripCount))
 
         swapDirection = False
         i = 0
+        strip = 0
+        curStrip = 0
         while i <= len(point) - 9:
+
+            if strip >= stripCount[curStrip]:
+                i+=3
+                strip = 0
+                curStrip += 1
+                swapDirection = False
+                continue
+
             x1, y1, z1 = point[i:i+3]
             x2, y2, z2 = point[i+3:i+6]
             x3, y3, z3 = point[i+6:i+9]
@@ -293,9 +304,10 @@ class GL:
             else:
                 GL.triangleSet([x1, y1, z1, x2, y2, z2, x3, y3, z3], colors)
 
-            swapDirection = not swapDirection
             print(i, end=' ', flush=True)
             i += 3
+            strip += 1
+            swapDirection = not swapDirection
 
     # --------------------------------------------------------------- #
 
