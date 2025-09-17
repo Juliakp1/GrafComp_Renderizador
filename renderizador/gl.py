@@ -165,14 +165,15 @@ class GL:
             x3 = vertices[i + 4]
             y3 = vertices[i + 5]
 
-            for y in np.arange(min(y1, y2, y3), max(y1, y2, y3), 0.4):
-                for x in np.arange(min(x1, x2, x3), max(x1, x2, x3), 0.4):
-                    if (
-                        test_point(x, y, x1, x2, y1, y2) and
-                        test_point(x, y, x2, x3, y2, y3) and
-                        test_point(x, y, x3, x1, y3, y1)
-                        ):
-                        gpu.GPU.draw_pixel([int(x), int(y)], gpu.GPU.RGB8, color)
+            for y in np.arange(min(y1, y2, y3, 0), max(y1, y2, y3, GL.height-1), 0.4):
+                for x in np.arange(min(x1, x2, x3, 0), max(x1, x2, x3, GL.width-1), 0.4):
+                    if x >= 0 and x < GL.width and y >= 0 and y < GL.height:
+                        if (
+                            test_point(x, y, x1, x2, y1, y2) and
+                            test_point(x, y, x2, x3, y2, y3) and
+                            test_point(x, y, x3, x1, y3, y1)
+                            ):
+                            gpu.GPU.draw_pixel([int(x), int(y)], gpu.GPU.RGB8, color)
 
     # --------------------------------------------------------------- #
 
