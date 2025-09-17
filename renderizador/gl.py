@@ -282,7 +282,8 @@ class GL:
         print("\nStrip Length : {0}".format(len(point)))
 
         swapDirection = False
-        for i in range(0, len(point)-6, 3):
+        i = 0
+        while i <= len(point) - 9:
             x1, y1, z1 = point[i:i+3]
             x2, y2, z2 = point[i+3:i+6]
             x3, y3, z3 = point[i+6:i+9]
@@ -290,10 +291,11 @@ class GL:
             if swapDirection:
                 GL.triangleSet([x2, y2, z2, x1, y1, z1, x3, y3, z3], colors)
             else:
-                GL.triangleSet([x1, y1, z1, x2, y2, z2,x3, y3, z3], colors)
+                GL.triangleSet([x1, y1, z1, x2, y2, z2, x3, y3, z3], colors)
 
             swapDirection = not swapDirection
             print(i, end=' ', flush=True)
+            i += 3
 
     # --------------------------------------------------------------- #
 
@@ -304,22 +306,30 @@ class GL:
         print("\nIndexed Length : {0} - Color: {1}".format(len(index), [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]))
 
         swapDirection = False
-        for i in range(0, len(point)-6, 3):
+        p = 0
+        while p < len(index) - 2:
+            
+            if index[p] == -1 or index[p+1] == -1 or index[p+2] == -1:
+                p += 1
+                swapDirection = False
+                continue
 
-            if point[i+6] == -1:
-                break
+            i = index[p]
+            j = index[p+1]
+            k = index[p+2]
 
-            x1, y1, z1 = point[i:i+3]
-            x2, y2, z2 = point[i+3:i+6]
-            x3, y3, z3 = point[i+6:i+9]
+            x1, y1, z1 = point[i*3:i*3+3]
+            x2, y2, z2 = point[j*3:j*3+3]
+            x3, y3, z3 = point[k*3:k*3+3]
 
             if swapDirection:
                 GL.triangleSet([x2, y2, z2, x1, y1, z1, x3, y3, z3], colors)
             else:
-                GL.triangleSet([x1, y1, z1, x2, y2, z2,x3, y3, z3], colors)
+                GL.triangleSet([x1, y1, z1, x2, y2, z2, x3, y3, z3], colors)
 
             swapDirection = not swapDirection
-            print(i, end=' ', flush=True)
+            p += 1
+            print(p, end=' ', flush=True)
 
     # --------------------------------------------------------------- #
 
@@ -335,7 +345,7 @@ class GL:
         # cor da textura conforme a posição do mapeamento. Dentro da classe GPU já está
         # implementadado um método para a leitura de imagens.
 
-        print("\nFaces Length : {0}".format(len(coord)))
+        print("\nFaces Length : {0} - Color: {1}".format(len(coord), [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]))
 
         swapDirection = False
         firstPoint = coord[0:3]
