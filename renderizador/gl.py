@@ -267,6 +267,26 @@ class GL:
         GL.STACK.append(lastMatrix @ allTransforms)
 
     # --------------------------------------------------------------- #
+        # A função transform_in será chamada quando se entrar em um nó X3D do tipo Transform
+        # do grafo de cena. Os valores passados são a escala em um vetor [x, y, z]
+        # indicando a escala em cada direção, a translação [x, y, z] nas respectivas
+        # coordenadas e finalmente a rotação por [x, y, z, t] sendo definida pela rotação
+        # do objeto ao redor do eixo x, y, z por t radianos, seguindo a regra da mão direita.
+        # ESSES NÃO SÃO OS VALORES DE QUATÉRNIOS AS CONTAS AINDA PRECISAM SER FEITAS.
+        # Quando se entrar em um nó transform se deverá salvar a matriz de transformação dos
+        # modelos do mundo para depois potencialmente usar em outras chamadas. 
+        # Quando começar a usar Transforms dentre de outros Transforms, mais a frente no curso
+        # Você precisará usar alguma estrutura de dados pilha para organizar as matrizes.
+
+        # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
+        print("Transform : ", end='')
+        if translation:
+            print("translation = {0} ".format(translation), end='') # imprime no terminal
+        if scale:
+            print("scale = {0} ".format(scale), end='') # imprime no terminal
+        if rotation:
+            print("rotation = {0} ".format(rotation), end='') # imprime no terminal
+        print("")
 
     @staticmethod
     def transform_out():
