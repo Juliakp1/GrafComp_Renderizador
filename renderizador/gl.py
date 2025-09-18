@@ -73,7 +73,6 @@ class GL:
 
     @staticmethod
     def perspectiveTransformMatrix(near, far, right, top):
-        # should not be in scientific notation
         return np.array([
             [near/right, 0, 0, 0],
             [0, near/top, 0, 0],
@@ -106,41 +105,43 @@ class GL:
     @staticmethod
     def polyline2D(lineSegments, colors):
         """Função usada para renderizar Polyline2D."""
-        color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
-        for i in range(0, len(lineSegments), 4):
-            x1 = lineSegments[i]
-            x2 = lineSegments[i + 2]
-            y1 = lineSegments[i + 1]
-            y2 = lineSegments[i + 3]
 
-            if x1-x2 < y1-y2:
-                for x in np.arange(min(x1, x2), max(x1, x2) + 0.3, 0.2):
-                    y = y1 + (x - x1) * ((y2 - y1) / (x2 - x1))
+        color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
+        for i in range(0, len(lineSegments)-2, 2):
+
+            x1, y1 = lineSegments[i:i+2]
+            x2, y2 = lineSegments[i+2:i+4]
+
+            dx = x2 - x1
+            dy = y2 - y1
+
+            steps = max(abs(dx), abs(dy))
+            if steps == 0:
+                continue
+
+            x_increment = dx / steps
+            y_increment = dy / steps
+
+            x = x1
+            y = y1
+            for j in range(int(steps) + 1):
+                if x >= 0 and x < GL.width and y >= 0 and y < GL.height:
                     gpu.GPU.draw_pixel([int(x), int(y)], gpu.GPU.RGB8, color)
-            else:
-                for y in np.arange(min(y1, y2), max(y1, y2) + 0.3, 0.2):
-                    x = x1 + (y - y1) * ((x2 - x1) / (y2 - y1))
-                    gpu.GPU.draw_pixel([int(x), int(y)], gpu.GPU.RGB8, color)
+                x += x_increment
+                y += y_increment
 
     # --------------------------------------------------------------- #
 
     @staticmethod
     def circle2D(radius, colors):
         """Função usada para renderizar Circle2D."""
-        # https://www.web3d.org/specifications/X3Dv4/ISO-IEC19775-1v4-IS/Part01/components/geometry2D.html#Circle2D
-        # Nessa função você receberá um valor de raio e deverá desenhar o contorno de
-        # um círculo.
-        # O parâmetro colors é um dicionário com os tipos cores possíveis, para o Circle2D
-        # você pode assumir o desenho das linhas com a cor emissiva (emissiveColor).
 
-        print("Circle2D : radius = {0}".format(radius)) # imprime no terminal
-        print("Circle2D : colors = {0}".format(colors)) # imprime no terminal as cores
-        
-        # Exemplo:
-        pos_x = GL.width//2
-        pos_y = GL.height//2
-        gpu.GPU.draw_pixel([pos_x, pos_y], gpu.GPU.RGB8, [255, 0, 255])  # altera pixel (u, v, tipo, r, g, b)
-        # cuidado com as cores, o X3D especifica de (0,1) e o Framebuffer de (0,255)
+        color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
+        for angle in np.arange(0, 2 * math.pi, 0.01):
+            x = int(radius * math.cos(angle))
+            y = int(radius * math.sin(angle))
+            if x >= 0 and x < GL.width and y >= 0 and y < GL.height:
+                gpu.GPU.draw_pixel([x, y], gpu.GPU.RGB8, color)
 
     # --------------------------------------------------------------- #
 
@@ -267,26 +268,6 @@ class GL:
         GL.STACK.append(lastMatrix @ allTransforms)
 
     # --------------------------------------------------------------- #
-        # A função transform_in será chamada quando se entrar em um nó X3D do tipo Transform
-        # do grafo de cena. Os valores passados são a escala em um vetor [x, y, z]
-        # indicando a escala em cada direção, a translação [x, y, z] nas respectivas
-        # coordenadas e finalmente a rotação por [x, y, z, t] sendo definida pela rotação
-        # do objeto ao redor do eixo x, y, z por t radianos, seguindo a regra da mão direita.
-        # ESSES NÃO SÃO OS VALORES DE QUATÉRNIOS AS CONTAS AINDA PRECISAM SER FEITAS.
-        # Quando se entrar em um nó transform se deverá salvar a matriz de transformação dos
-        # modelos do mundo para depois potencialmente usar em outras chamadas. 
-        # Quando começar a usar Transforms dentre de outros Transforms, mais a frente no curso
-        # Você precisará usar alguma estrutura de dados pilha para organizar as matrizes.
-
-        # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
-        print("Transform : ", end='')
-        if translation:
-            print("translation = {0} ".format(translation), end='') # imprime no terminal
-        if scale:
-            print("scale = {0} ".format(scale), end='') # imprime no terminal
-        if rotation:
-            print("rotation = {0} ".format(rotation), end='') # imprime no terminal
-        print("")
 
     @staticmethod
     def transform_out():
