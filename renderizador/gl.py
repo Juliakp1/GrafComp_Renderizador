@@ -32,6 +32,7 @@ class GL:
 
     VIEW = []
     STACK = [np.eye(4)]
+    ZBUFFER = np.full((height, width), float('inf'))
 
     @staticmethod
     def setup(width, height, near=0.01, far=1000):
@@ -143,7 +144,7 @@ class GL:
     # --------------------------------------------------------------- #
 
     @staticmethod
-    def triangleSet2D(vertices, colors):
+    def triangleSet2D(vertices, colors, z_values=[]):
         """Função usada para renderizar TriangleSet2D."""
 
         def test_point(x, y, x1, x2, y1, y2):
@@ -162,6 +163,10 @@ class GL:
             x2, y2 = vertices[i + 2], vertices[i + 3]
             x3, y3 = vertices[i + 4], vertices[i + 5]
 
+            inv_z1 = 1.0 / z_values[0]
+            inv_z2 = 1.0 / z_values[1]
+            inv_z3 = 1.0 / z_values[2]
+
             # bounding box 
             min_x = int(min(x1, x2, x3))
             max_x = int(max(x1, x2, x3))
@@ -171,7 +176,7 @@ class GL:
             for y_pixel in range(max(0, min_y), min(GL.height, max_y + 1)):
                 for x_pixel in range(max(0, min_x), min(GL.width, max_x + 1)):
                     
-                    samples_inside = 0
+                    current_depth = GL.ZBUFFER[y_pixel][x_pixel]
                     
                     for sy in range(grid_size):
                         for sx in range(grid_size):
@@ -194,15 +199,21 @@ class GL:
                                     alpha = ((x2 - sub_x) * (y3 - sub_y) - (x3 - sub_x) * (y2 - sub_y)) / totalArea
                                     beta = ((sub_x - x1) * (y3 - y1) - (x3 - x1) * (sub_y - y1)) / totalArea
                                     gamma = 1.0 - alpha - beta
+                                    
+                                    inv_z_sub = alpha * inv_z1 + beta * inv_z2 + gamma * inv_z3
+                                    z_sub = 1.0 / inv_z_sub
 
-                                    final_r = alpha * r1 + beta * r2 + gamma * r3
-                                    final_g = alpha * g1 + beta * g2 + gamma * g3
-                                    final_b = alpha * b1 + beta * b2 + gamma * b3
-                                    final_color = [int(min(final_r, 255)), int(min(final_g, 255)), int(min(final_b, 255))]
+                                    if z_sub < current_depth:
+                                        GL.ZBUFFER[y_pixel][x_pixel] = z_sub
 
-                                    # print('final color:', final_color, flush=True)
+                                        final_r = alpha * r1 + beta * r2 + gamma * r3
+                                        final_g = alpha * g1 + beta * g2 + gamma * g3
+                                        final_b = alpha * b1 + beta * b2 + gamma * b3
+                                        final_color = [int(min(final_r, 255)), int(min(final_g, 255)), int(min(final_b, 255))]
 
-                                    gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, final_color)
+                                        gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, final_color)
+
+                                # -------------------------------- #
 
                                 else:
                                     # final_color = [int(c * samples_inside / num_samples) for c in color] # antialiasing 
@@ -232,7 +243,6 @@ class GL:
             proj_p2 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p2
             proj_p3 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p3
 
-
             # Divide by w (Perspective Divide)
             p1_clip = proj_p1 / proj_p1[3] 
             p2_clip = proj_p2 / proj_p2[3]
@@ -250,7 +260,7 @@ class GL:
                 p3_viewport[0], p3_viewport[1]
             ])
 
-            GL.triangleSet2D(projVertices, colors)
+            GL.triangleSet2D(projVertices, colors, z_values=[p1_clip[2], p2_clip[2], p3_clip[2]])
 
     # --------------------------------------------------------------- #
 
