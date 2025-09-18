@@ -114,10 +114,7 @@ class GL:
 
             dx = x2 - x1
             dy = y2 - y1
-
             steps = max(abs(dx), abs(dy))
-            if steps == 0:
-                continue
 
             x_increment = dx / steps
             y_increment = dy / steps
