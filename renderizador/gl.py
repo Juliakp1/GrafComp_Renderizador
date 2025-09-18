@@ -157,7 +157,6 @@ class GL:
         grid_size = 2 # 4 samples per pixel
         num_samples = grid_size * grid_size
 
-        color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
         for i in range(0, len(vertices), 6):
             x1, y1 = vertices[i], vertices[i + 1]
             x2, y2 = vertices[i + 2], vertices[i + 3]
@@ -186,11 +185,28 @@ class GL:
                                 test_point(sub_x, sub_y, x2, x3, y2, y3) and
                                 test_point(sub_x, sub_y, x3, x1, y3, y1)
                             ):
-                                samples_inside += 1
-                    
-                    if samples_inside > 0:
-                        # final_color = [int(c * samples_inside / num_samples) for c in color]
-                        gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, color)
+                                if len(colors) == 9:
+                                    r1, g1, b1 = colors[0], colors[1], colors[2]
+                                    r2, g2, b2 = colors[3], colors[4], colors[5]
+                                    r3, g3, b3 = colors[6], colors[7], colors[8]
+
+                                    totalArea = (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1)
+                                    alpha = ((x2 - sub_x) * (y3 - sub_y) - (x3 - sub_x) * (y2 - sub_y)) / totalArea
+                                    beta = ((sub_x - x1) * (y3 - y1) - (x3 - x1) * (sub_y - y1)) / totalArea
+                                    gamma = 1.0 - alpha - beta
+
+                                    final_r = alpha * r1 + beta * r2 + gamma * r3
+                                    final_g = alpha * g1 + beta * g2 + gamma * g3
+                                    final_b = alpha * b1 + beta * b2 + gamma * b3
+                                    final_color = [int(min(final_r, 255)), int(min(final_g, 255)), int(min(final_b, 255))]
+
+                                    # print('final color:', final_color, flush=True)
+
+                                    gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, final_color)
+
+                                else:
+                                    # final_color = [int(c * samples_inside / num_samples) for c in color] # antialiasing 
+                                    gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, colors)
 
     # --------------------------------------------------------------- #
 
@@ -358,56 +374,76 @@ class GL:
     def indexedFaceSet(coord, coordIndex, colorPerVertex, color, colorIndex,
                        texCoord, texCoordIndex, colors, current_texture):
         """Função usada para renderizar IndexedFaceSet."""
-        # Adicionalmente essa implementação do IndexedFace aceita cores por vértices, assim
-        # se a flag colorPerVertex estiver habilitada, os vértices também possuirão cores
-        # que servem para definir a cor interna dos poligonos, para isso faça um cálculo
-        # baricêntrico de que cor deverá ter aquela posição. Da mesma forma se pode definir uma
-        # textura para o poligono, para isso, use as coordenadas de textura e depois aplique a
-        # cor da textura conforme a posição do mapeamento. Dentro da classe GPU já está
-        # implementadado um método para a leitura de imagens.
 
-        print("\nFaces Length : {0} - Color: {1}".format(len(coord), [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]))
-        
-        num_points = len(coord) // 3
-        start_of_fan = 0
-        for i, index in enumerate(coordIndex):
-            
-            if index == -1:
-                current_fan_indices = coordIndex[start_of_fan:i]
-                
-                if len(current_fan_indices) >= 3:
-                    anchor_idx = current_fan_indices[0]
+        print("\nFaces Length : {0}".format(len(coordIndex)), flush=True)
+
+        # Splits the lists
+        list_of_fans = []
+        list_of_colors = []
+        current_fan_indices = []
+        current_colors = []
+        for i in range(len(coordIndex)):
+            if coordIndex[i] == -1:
+                list_of_fans.append(current_fan_indices)
+                list_of_colors.append(current_colors)
+                current_fan_indices = []
+            else:
+                current_fan_indices.append(coordIndex[i])
+                current_colors.append(colorIndex[i])
+                continue
+
+        # -------------------------------- #
+
+        for i in range(len(list_of_fans)):
+            current_fan_indices = list_of_fans[i]
+            anchor_idx = current_fan_indices[0]
+            swapDirection = False
+
+            for j in range(1, len(current_fan_indices) - 1):
+
+                # Triangle vertices
+                p1_idx = anchor_idx
+                p2_idx = current_fan_indices[j]
+                p3_idx = current_fan_indices[j + 1]
                     
-                    for j in range(1, len(current_fan_indices) - 1):
-                        p1_idx = anchor_idx
-                        p2_idx = current_fan_indices[j]
-                        p3_idx = current_fan_indices[j + 1]
+                x1, y1, z1 = coord[p1_idx * 3 : p1_idx * 3 + 3]
+                x2, y2, z2 = coord[p2_idx * 3 : p2_idx * 3 + 3]
+                x3, y3, z3 = coord[p3_idx * 3 : p3_idx * 3 + 3]
 
-                        if 0 <= p1_idx < num_points and 0 <= p2_idx < num_points and 0 <= p3_idx < num_points:
-                            
-                            x1, y1, z1 = coord[p1_idx * 3 : p1_idx * 3 + 3]
-                            x2, y2, z2 = coord[p2_idx * 3 : p2_idx * 3 + 3]
-                            x3, y3, z3 = coord[p3_idx * 3 : p3_idx * 3 + 3]
+                # -------------------------------- #
 
-                            triangle_coords = [x1, y1, z1, x2, y2, z2, x3, y3, z3]
+                # Triangle colors
+                triangle_colors = None
+                if colorPerVertex and color: 
+                    c1_idx = current_colors[0]
+                    c2_idx = current_colors[j]
+                    c3_idx = current_colors[j + 1]
 
-                            triangle_colors = None
-                            if colorPerVertex and color: 
-                                c1_idx = colorIndex[p1_idx]
-                                c2_idx = colorIndex[p2_idx]
-                                c3_idx = colorIndex[p3_idx]
-                                
-                                color1 = color[c1_idx * 3 : c1_idx * 3 + 3]
-                                color2 = color[c2_idx * 3 : c2_idx * 3 + 3]
-                                color3 = color[c3_idx * 3 : c3_idx * 3 + 3]
+                    color1 = color[c1_idx * 3 : c1_idx * 3 + 3]
+                    color2 = color[c2_idx * 3 : c2_idx * 3 + 3]
+                    color3 = color[c3_idx * 3 : c3_idx * 3 + 3]
 
-                                triangle_colors = color1 + color2 + color3
+                    triangle_colors = [
+                        color1[0]*255, color1[1]*255, color1[2]*255,
+                        color2[0]*255, color2[1]*255, color2[2]*255,
+                        color3[0]*255, color3[1]*255, color3[2]*255
+                    ]
 
-                                GL.triangleSet(triangle_coords, triangle_colors)
-                            else:
-                                GL.triangleSet(triangle_coords, colors)
+                    if not swapDirection:
+                        triangle_coords = [x1, y1, z1, x2, y2, z2, x3, y3, z3]
+                        GL.triangleSet(triangle_coords, triangle_colors)
+                    else:
+                        triangle_coords = [x3, y3, z3, x2, y2, z2, x1, y1, z1]
+                        GL.triangleSet(triangle_coords, triangle_colors)
 
-                start_of_fan = i + 1
+                    swapDirection = not swapDirection
+                    print(j, end=' ', flush=True)
+                
+                # -------------------------------- #
+
+                else:
+                    final_color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
+                    GL.triangleSet(triangle_coords, final_color)
 
     # --------------------------------------------------------------- #
 
