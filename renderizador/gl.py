@@ -369,30 +369,45 @@ class GL:
         print("\nFaces Length : {0} - Color: {1}".format(len(coord), [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]))
         
         num_points = len(coord) // 3
-        first_point_index = -1
+        start_of_fan = 0
         for i, index in enumerate(coordIndex):
-
+            
             if index == -1:
-                if first_point_index != -1 and i > coordIndex.index(first_point_index) + 2:
+                current_fan_indices = coordIndex[start_of_fan:i]
+                
+                if len(current_fan_indices) >= 3:
+                    anchor_idx = current_fan_indices[0]
                     
-                    for j in range(coordIndex.index(first_point_index) + 1, i - 1):
-                        p1_idx = first_point_index
-                        p2_idx = coordIndex[j]
-                        p3_idx = coordIndex[j + 1]
+                    for j in range(1, len(current_fan_indices) - 1):
+                        p1_idx = anchor_idx
+                        p2_idx = current_fan_indices[j]
+                        p3_idx = current_fan_indices[j + 1]
 
                         if 0 <= p1_idx < num_points and 0 <= p2_idx < num_points and 0 <= p3_idx < num_points:
+                            
                             x1, y1, z1 = coord[p1_idx * 3 : p1_idx * 3 + 3]
                             x2, y2, z2 = coord[p2_idx * 3 : p2_idx * 3 + 3]
                             x3, y3, z3 = coord[p3_idx * 3 : p3_idx * 3 + 3]
-                            
-                            GL.triangleSet([x1, y1, z1, x2, y2, z2, x3, y3, z3], colors)
-                        
-                if i < len(coordIndex) - 1:
-                    first_point_index = coordIndex[i+1]
-            elif first_point_index == -1:
-                first_point_index = index
 
-            print(i, end=' ', flush=True)
+                            triangle_coords = [x1, y1, z1, x2, y2, z2, x3, y3, z3]
+
+                            triangle_colors = None
+                            if colorPerVertex and color: 
+                                c1_idx = colorIndex[p1_idx]
+                                c2_idx = colorIndex[p2_idx]
+                                c3_idx = colorIndex[p3_idx]
+                                
+                                color1 = color[c1_idx * 3 : c1_idx * 3 + 3]
+                                color2 = color[c2_idx * 3 : c2_idx * 3 + 3]
+                                color3 = color[c3_idx * 3 : c3_idx * 3 + 3]
+
+                                triangle_colors = color1 + color2 + color3
+
+                                GL.triangleSet(triangle_coords, triangle_colors)
+                            else:
+                                GL.triangleSet(triangle_coords, colors)
+
+                start_of_fan = i + 1
 
     # --------------------------------------------------------------- #
 
