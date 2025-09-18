@@ -144,7 +144,7 @@ class GL:
     # --------------------------------------------------------------- #
 
     @staticmethod
-    def triangleSet2D(vertices, colors, z_values=[]):
+    def triangleSet2D(vertices, colors, z_values=[], transparency=[]):
         """Função usada para renderizar TriangleSet2D."""
 
         def test_point(x, y, x1, x2, y1, y2):
@@ -190,18 +190,19 @@ class GL:
                                 test_point(sub_x, sub_y, x2, x3, y2, y3) and
                                 test_point(sub_x, sub_y, x3, x1, y3, y1)
                             ):
+                                
+                                totalArea = (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1)
+                                alpha = ((x2 - sub_x) * (y3 - sub_y) - (x3 - sub_x) * (y2 - sub_y)) / totalArea
+                                beta = ((sub_x - x1) * (y3 - y1) - (x3 - x1) * (sub_y - y1)) / totalArea
+                                gamma = 1.0 - alpha - beta
+                                
+                                inv_z_sub = alpha * inv_z1 + beta * inv_z2 + gamma * inv_z3
+                                z_sub = 1.0 / inv_z_sub
+
                                 if len(colors) == 9:
                                     r1, g1, b1 = colors[0], colors[1], colors[2]
                                     r2, g2, b2 = colors[3], colors[4], colors[5]
                                     r3, g3, b3 = colors[6], colors[7], colors[8]
-
-                                    totalArea = (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1)
-                                    alpha = ((x2 - sub_x) * (y3 - sub_y) - (x3 - sub_x) * (y2 - sub_y)) / totalArea
-                                    beta = ((sub_x - x1) * (y3 - y1) - (x3 - x1) * (sub_y - y1)) / totalArea
-                                    gamma = 1.0 - alpha - beta
-                                    
-                                    inv_z_sub = alpha * inv_z1 + beta * inv_z2 + gamma * inv_z3
-                                    z_sub = 1.0 / inv_z_sub
 
                                     if z_sub < current_depth:
                                         GL.ZBUFFER[y_pixel][x_pixel] = z_sub
@@ -209,20 +210,23 @@ class GL:
                                         final_r = alpha * r1 + beta * r2 + gamma * r3
                                         final_g = alpha * g1 + beta * g2 + gamma * g3
                                         final_b = alpha * b1 + beta * b2 + gamma * b3
-                                        final_color = [int(min(final_r, 255)), int(min(final_g, 255)), int(min(final_b, 255))]
+                                        final_color = [int(min(final_r, 255)*transparency), int(min(final_g, 255)*transparency), int(min(final_b, 255)*transparency)] 
 
                                         gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, final_color)
 
                                 # -------------------------------- #
 
                                 else:
-                                    # final_color = [int(c * samples_inside / num_samples) for c in color] # antialiasing 
-                                    gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, colors)
+                                    if z_sub < current_depth:
+                                        GL.ZBUFFER[y_pixel][x_pixel] = z_sub
+                                        if "emissiveColor" in colors:
+                                            colors = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
+                                        gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, colors)
 
     # --------------------------------------------------------------- #
 
     @staticmethod
-    def triangleSet(point, colors):
+    def triangleSet(point, colors, transparency=[]):
         """Função usada para renderizar TriangleSet."""
 
         perspMatrix = GL.perspectiveTransformMatrix(GL.near, GL.far, GL.right, GL.top)
@@ -244,9 +248,9 @@ class GL:
             proj_p3 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p3
 
             # Divide by w (Perspective Divide)
-            p1_clip = proj_p1 / proj_p1[3] 
-            p2_clip = proj_p2 / proj_p2[3]
-            p3_clip = proj_p3 / proj_p3[3]
+            p1_clip = proj_p1 / (proj_p1[3] if proj_p1[3] != 0 else 0.1)
+            p2_clip = proj_p2 / (proj_p2[3] if proj_p2[3] != 0 else 0.1)
+            p3_clip = proj_p3 / (proj_p3[3] if proj_p3[3] != 0 else 0.1)
 
             # Apply the viewport transformation
             p1_viewport = viewportMatrix @ p1_clip
@@ -260,7 +264,18 @@ class GL:
                 p3_viewport[0], p3_viewport[1]
             ])
 
-            GL.triangleSet2D(projVertices, colors, z_values=[p1_clip[2], p2_clip[2], p3_clip[2]])
+            # print("\nView Matrix : {0}".format(GL.VIEW))
+            # print("Stack Top Matrix : {0}".format(GL.STACK[-1]))
+            # print("Perspective Matrix : {0}".format(perspMatrix))
+            # print("Viewport Matrix : {0}".format(viewportMatrix))
+
+            # print("\nPoint 1 : {0}".format(p1))
+            # print("Point 1 b4 proj ", GL.VIEW @ GL.STACK[-1] @ p1)
+            # print("Projected Point 1 : {0}".format(proj_p1))
+            # print("Clip Point 1 : {0}".format(p1_clip))
+            # print("Point 1 viewport : {0}".format(p1_viewport))
+
+            GL.triangleSet2D(projVertices, colors, z_values=[p1_clip[2], p2_clip[2], p3_clip[2]], transparency=transparency)
 
     # --------------------------------------------------------------- #
 
@@ -387,6 +402,10 @@ class GL:
 
         print("\nFaces Length : {0}".format(len(coordIndex)), flush=True)
 
+        transparency = 1
+        if "transparency" in colors:
+            transparency = colors["transparency"]
+
         # Splits the lists
         list_of_fans = []
         list_of_colors = []
@@ -399,7 +418,8 @@ class GL:
                 current_fan_indices = []
             else:
                 current_fan_indices.append(coordIndex[i])
-                current_colors.append(colorIndex[i])
+                if current_colors:
+                    current_colors.append(colorIndex[i])
                 continue
 
         # -------------------------------- #
@@ -441,10 +461,10 @@ class GL:
 
                     if not swapDirection:
                         triangle_coords = [x1, y1, z1, x2, y2, z2, x3, y3, z3]
-                        GL.triangleSet(triangle_coords, triangle_colors)
+                        GL.triangleSet(triangle_coords, triangle_colors, transparency=transparency)
                     else:
                         triangle_coords = [x3, y3, z3, x2, y2, z2, x1, y1, z1]
-                        GL.triangleSet(triangle_coords, triangle_colors)
+                        GL.triangleSet(triangle_coords, triangle_colors, transparency=transparency)
 
                     swapDirection = not swapDirection
                     print(j, end=' ', flush=True)
@@ -453,7 +473,8 @@ class GL:
 
                 else:
                     final_color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
-                    GL.triangleSet(triangle_coords, final_color)
+                    triangle_coords = [x1, y1, z1, x2, y2, z2, x3, y3, z3]
+                    GL.triangleSet(triangle_coords, final_color, transparency=transparency)
 
     # --------------------------------------------------------------- #
 
