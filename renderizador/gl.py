@@ -279,35 +279,27 @@ class GL:
     def triangleStripSet(point, stripCount, colors):
         """Função usada para renderizar TriangleStripSet."""
 
-        print("\nStrip Length : {0}".format(len(point)))
-        print("Strip Count : {0}".format(stripCount))
+        print("\nStrip Length : {0} - Color: {1}".format(len(point), [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]))
 
-        swapDirection = False
-        i = 0
-        strip = 0
-        curStrip = 0
-        while i <= len(point) - 9:
-
-            if strip >= stripCount[curStrip]:
-                i+=3
-                strip = 0
-                curStrip += 1
-                swapDirection = False
-                continue
-
-            x1, y1, z1 = point[i:i+3]
-            x2, y2, z2 = point[i+3:i+6]
-            x3, y3, z3 = point[i+6:i+9]
-
-            if swapDirection:
-                GL.triangleSet([x2, y2, z2, x1, y1, z1, x3, y3, z3], colors)
-            else:
-                GL.triangleSet([x1, y1, z1, x2, y2, z2, x3, y3, z3], colors)
-
-            print(i, end=' ', flush=True)
-            i += 3
-            strip += 1
-            swapDirection = not swapDirection
+        pointIndex = 0
+        for strip_len in stripCount:
+            swapDirection = False
+            
+            for i in range(strip_len - 2):
+                
+                x1, y1, z1 = point[pointIndex + i*3 : pointIndex + i*3 + 3]
+                x2, y2, z2 = point[pointIndex + i*3 + 3 : pointIndex + i*3 + 6]
+                x3, y3, z3 = point[pointIndex + i*3 + 6 : pointIndex + i*3 + 9]
+                
+                if swapDirection:
+                    GL.triangleSet([x2, y2, z2, x1, y1, z1, x3, y3, z3], colors)
+                else:
+                    GL.triangleSet([x1, y1, z1, x2, y2, z2, x3, y3, z3], colors)
+                
+                swapDirection = not swapDirection
+                print(i, end=' ', flush=True)
+            
+            pointIndex += strip_len * 3
 
     # --------------------------------------------------------------- #
 
@@ -382,6 +374,8 @@ class GL:
                     first_point_index = coordIndex[i+1]
             elif first_point_index == -1:
                 first_point_index = index
+
+            print(i, end=' ', flush=True)
 
     # --------------------------------------------------------------- #
 
