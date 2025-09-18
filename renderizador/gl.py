@@ -154,24 +154,43 @@ class GL:
             final = t1 * t4 - t2 * t3
             return 0 <= final
         
+        grid_size = 2 # 4 samples per pixel
+        num_samples = grid_size * grid_size
+
         color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
         for i in range(0, len(vertices), 6):
-            x1 = vertices[i]
-            y1 = vertices[i + 1]
-            x2 = vertices[i + 2]
-            y2 = vertices[i + 3]
-            x3 = vertices[i + 4]
-            y3 = vertices[i + 5]
+            x1, y1 = vertices[i], vertices[i + 1]
+            x2, y2 = vertices[i + 2], vertices[i + 3]
+            x3, y3 = vertices[i + 4], vertices[i + 5]
 
-            for y in np.arange(min(y1, y2, y3, 0), max(y1, y2, y3, GL.height-1), 0.4):
-                for x in np.arange(min(x1, x2, x3, 0), max(x1, x2, x3, GL.width-1), 0.4):
-                    if x >= 0 and x < GL.width and y >= 0 and y < GL.height:
-                        if (
-                            test_point(x, y, x1, x2, y1, y2) and
-                            test_point(x, y, x2, x3, y2, y3) and
-                            test_point(x, y, x3, x1, y3, y1)
+            # bounding box 
+            min_x = int(min(x1, x2, x3))
+            max_x = int(max(x1, x2, x3))
+            min_y = int(min(y1, y2, y3))
+            max_y = int(max(y1, y2, y3))
+
+            for y_pixel in range(max(0, min_y), min(GL.height, max_y + 1)):
+                for x_pixel in range(max(0, min_x), min(GL.width, max_x + 1)):
+                    
+                    samples_inside = 0
+                    
+                    for sy in range(grid_size):
+                        for sx in range(grid_size):
+                            
+                            # sx, sy = sub-sample coordinate
+                            sub_x = x_pixel + (sx + 0.5) / grid_size
+                            sub_y = y_pixel + (sy + 0.5) / grid_size
+                            
+                            if (
+                                test_point(sub_x, sub_y, x1, x2, y1, y2) and
+                                test_point(sub_x, sub_y, x2, x3, y2, y3) and
+                                test_point(sub_x, sub_y, x3, x1, y3, y1)
                             ):
-                            gpu.GPU.draw_pixel([int(x), int(y)], gpu.GPU.RGB8, color)
+                                samples_inside += 1
+                    
+                    if samples_inside > 0:
+                        # final_color = [int(c * samples_inside / num_samples) for c in color]
+                        gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, color)
 
     # --------------------------------------------------------------- #
 
