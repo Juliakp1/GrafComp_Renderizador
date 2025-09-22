@@ -494,7 +494,7 @@ class GL:
                 current_fan_indices.append(coordIndex[i])
                 if colorPerVertex and color:
                     current_colors.append(colorIndex[i])
-                if textureImage is not None:
+                if textureImage is not None and texCoord and texCoordIndex:
                     current_texture_coords.append(texCoordIndex[i])
                 continue
 
@@ -526,13 +526,17 @@ class GL:
                 
                 # Triangle with texture
                 if textureImage is not None:
-                    t1_idx = current_texture_coords[0]
-                    t2_idx = current_texture_coords[j]
-                    t3_idx = current_texture_coords[j + 1]
 
-                    u1, v1 = texCoord[t1_idx * 2 : t1_idx * 2 + 2]
-                    u2, v2 = texCoord[t2_idx * 2 : t2_idx * 2 + 2]
-                    u3, v3 = texCoord[t3_idx * 2 : t3_idx * 2 + 2]
+                    if current_texture_coords != []:
+                        t1_idx = current_texture_coords[0]
+                        t2_idx = current_texture_coords[j]
+                        t3_idx = current_texture_coords[j + 1]
+
+                        u1, v1 = texCoord[t1_idx * 2 : t1_idx * 2 + 2]
+                        u2, v2 = texCoord[t2_idx * 2 : t2_idx * 2 + 2]
+                        u3, v3 = texCoord[t3_idx * 2 : t3_idx * 2 + 2]
+                    else:
+                        u1, v1, u2, v2, u3, v3 = texCoord # somehow an actual thing that happens
 
                     if not swapDirection:
                         triangle_coords = [x1, y1, z1, x2, y2, z2, x3, y3, z3]
