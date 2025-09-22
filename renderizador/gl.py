@@ -206,8 +206,6 @@ class GL:
                                         r2, g2, b2 = colors[3], colors[4], colors[5]
                                         r3, g3, b3 = colors[6], colors[7], colors[8]
                                         
-                                        if transparency < 1.0:
-                                            GL.ZBUFFER[y_pixel][x_pixel] = z_sub
 
                                         final_r = alpha * r1 + beta * r2 + gamma * r3
                                         final_g = alpha * g1 + beta * g2 + gamma * g3
@@ -215,21 +213,20 @@ class GL:
                                         final_color = [int(final_r), int(final_g), int(final_b)]
 
                                         gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, final_color)
+                                        GL.ZBUFFER[y_pixel][x_pixel] = z_sub
 
                                     # -------------------------------- #
 
                                     else:
-                                        
-                                        if transparency < 1.0:
-                                            GL.ZBUFFER[y_pixel][x_pixel] = z_sub
 
-                                        if "emissiveColor" in colors:
+                                        if "emissiveColor" in colors: # corrects ones that werent unpacked
                                             colors = [
                                                 colors["emissiveColor"][0] * 255,
                                                 colors["emissiveColor"][1] * 255,
                                                 colors["emissiveColor"][2] * 255]
                                             
                                         gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, colors)
+                                        GL.ZBUFFER[y_pixel][x_pixel] = z_sub
 
     # --------------------------------------------------------------- #
 
@@ -463,17 +460,21 @@ class GL:
                     color2 = color[c2_idx * 3 : c2_idx * 3 + 3]
                     color3 = color[c3_idx * 3 : c3_idx * 3 + 3]
 
-                    triangle_colors = [
+                    if not swapDirection:
+                        triangle_coords = [x1, y1, z1, x2, y2, z2, x3, y3, z3]
+                        triangle_colors = [
                         color1[0]*255, color1[1]*255, color1[2]*255,
                         color2[0]*255, color2[1]*255, color2[2]*255,
                         color3[0]*255, color3[1]*255, color3[2]*255
-                    ]
-
-                    if not swapDirection:
-                        triangle_coords = [x1, y1, z1, x2, y2, z2, x3, y3, z3]
+                        ]
                         GL.triangleSet(triangle_coords, triangle_colors, transparency=transparency)
                     else:
                         triangle_coords = [x3, y3, z3, x2, y2, z2, x1, y1, z1]
+                        triangle_colors = [
+                            color3[0]*255, color3[1]*255, color3[2]*255,
+                            color2[0]*255, color2[1]*255, color2[2]*255,
+                            color1[0]*255, color1[1]*255, color1[2]*255
+                        ]
                         GL.triangleSet(triangle_coords, triangle_colors, transparency=transparency)
 
                     swapDirection = not swapDirection
