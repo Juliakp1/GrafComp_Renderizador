@@ -144,7 +144,7 @@ class GL:
     # --------------------------------------------------------------- #
 
     @staticmethod
-    def triangleSet2D(vertices, colors, z_values=[], transparency=1, texture=None, texture_coords=None):
+    def triangleSet2D(vertices, colors, z_values=[1,1,1], transparency=1, texture=None, texture_coords=None):
         """Função usada para renderizar TriangleSet2D."""
 
         def test_point(x, y, x1, x2, y1, y2):
