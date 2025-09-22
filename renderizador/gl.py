@@ -212,10 +212,7 @@ class GL:
                                         final_r = alpha * r1 + beta * r2 + gamma * r3
                                         final_g = alpha * g1 + beta * g2 + gamma * g3
                                         final_b = alpha * b1 + beta * b2 + gamma * b3
-                                        final_color = [
-                                            int(final_r * transparency), 
-                                            int(final_g * transparency), 
-                                            int(final_b * transparency)] 
+                                        final_color = [int(final_r), int(final_g), int(final_b)]
 
                                         gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, final_color)
 
@@ -228,11 +225,9 @@ class GL:
 
                                         if "emissiveColor" in colors:
                                             colors = [
-                                                colors["emissiveColor"][0] * 255 * transparency,
-                                                colors["emissiveColor"][1] * 255 * transparency,
-                                                colors["emissiveColor"][2] * 255 * transparency]
-                                        else:
-                                            colors = [colors[0] * transparency, colors[1] * transparency, colors[2] * transparency]
+                                                colors["emissiveColor"][0] * 255,
+                                                colors["emissiveColor"][1] * 255,
+                                                colors["emissiveColor"][2] * 255]
                                             
                                         gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, colors)
 
