@@ -212,6 +212,14 @@ class GL:
                                         final_b = alpha * b1 + beta * b2 + gamma * b3
                                         final_color = [int(final_r), int(final_g), int(final_b)]
 
+                                        if transparency < 1:
+                                            existing_color = gpu.GPU.read_pixel([x_pixel, y_pixel], gpu.GPU.RGB8)
+                                            final_color = [
+                                                int(existing_color[0] * (1 - transparency) + final_color[0] * transparency),
+                                                int(existing_color[1] * (1 - transparency) + final_color[1] * transparency),
+                                                int(existing_color[2] * (1 - transparency) + final_color[2] * transparency)
+                                            ]
+
                                         gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, final_color)
                                         GL.ZBUFFER[y_pixel][x_pixel] = z_sub
 
@@ -224,6 +232,14 @@ class GL:
                                                 colors["emissiveColor"][0] * 255,
                                                 colors["emissiveColor"][1] * 255,
                                                 colors["emissiveColor"][2] * 255]
+                                            
+                                        if transparency < 1:
+                                            existing_color = gpu.GPU.read_pixel([x_pixel, y_pixel], gpu.GPU.RGB8)
+                                            colors = [
+                                                int(existing_color[0] * (1 - transparency) + colors[0] * transparency),
+                                                int(existing_color[1] * (1 - transparency) + colors[1] * transparency),
+                                                int(existing_color[2] * (1 - transparency) + colors[2] * transparency)
+                                            ]
                                             
                                         gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, colors)
                                         GL.ZBUFFER[y_pixel][x_pixel] = z_sub
@@ -478,7 +494,6 @@ class GL:
                         GL.triangleSet(triangle_coords, triangle_colors, transparency=transparency)
 
                     swapDirection = not swapDirection
-                    print(j, end=' ', flush=True)
                 
                 # -------------------------------- #
 
@@ -487,6 +502,8 @@ class GL:
                     triangle_coords = [x1, y1, z1, x2, y2, z2, x3, y3, z3]
                     GL.triangleSet(triangle_coords, final_color, transparency=transparency)
 
+                print(j, end=' ', flush=True)
+                
     # --------------------------------------------------------------- #
 
     @staticmethod
