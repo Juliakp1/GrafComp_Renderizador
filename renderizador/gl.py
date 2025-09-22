@@ -216,17 +216,8 @@ class GL:
                                         tex_x = max(0, min(len(texture[0]) - 1, tex_x))
                                         tex_y = max(0, min(len(texture) - 1, tex_y))
 
-                                        final_color = texture[tex_y][tex_x]
-
-                                        if transparency < 1:
-                                            existing_color = gpu.GPU.read_pixel([x_pixel, y_pixel], gpu.GPU.RGB8)
-                                            final_color = [
-                                                int(existing_color[0] * (1 - transparency) + final_color[0] * transparency),
-                                                int(existing_color[1] * (1 - transparency) + final_color[1] * transparency),
-                                                int(existing_color[2] * (1 - transparency) + final_color[2] * transparency)
-                                            ]
-
-                                        print("Texture Color at ({}, {}): {}".format(tex_x, tex_y, colors))
+                                        final_color = texture[tex_x][tex_y]
+                                        final_color = final_color[:3]  # Ignore alpha if present
 
                                     # -------------------------------- #
 
@@ -244,35 +235,39 @@ class GL:
                                         final_g = g_over_z * z_sub
                                         final_b = b_over_z * z_sub
 
-                                        final_color = [int(final_r), int(final_g), int(final_b)]
+                                        new_color = [int(final_r), int(final_g), int(final_b)]
 
                                         if transparency < 1:
                                             existing_color = gpu.GPU.read_pixel([x_pixel, y_pixel], gpu.GPU.RGB8)
                                             final_color = [
-                                                int(existing_color[0] * (1 - transparency) + final_color[0] * transparency),
-                                                int(existing_color[1] * (1 - transparency) + final_color[1] * transparency),
-                                                int(existing_color[2] * (1 - transparency) + final_color[2] * transparency)
+                                                int(existing_color[0] * (1 - transparency) + new_color[0] * transparency),
+                                                int(existing_color[1] * (1 - transparency) + new_color[1] * transparency),
+                                                int(existing_color[2] * (1 - transparency) + new_color[2] * transparency)
                                             ]
+                                        else:
+                                            final_color = new_color
 
                                     # -------------------------------- #
 
                                     # Single color
                                     else:
                                         if "emissiveColor" in colors: # corrects ones that werent unpacked
-                                            final_color = [
+                                            new_color = [
                                                 colors["emissiveColor"][0] * 255,
                                                 colors["emissiveColor"][1] * 255,
                                                 colors["emissiveColor"][2] * 255]
                                         else:
-                                            final_color = [colors[0], colors[1], colors[2]]
+                                            new_color = [colors[0], colors[1], colors[2]]
                                             
                                         if transparency < 1:
                                             existing_color = gpu.GPU.read_pixel([x_pixel, y_pixel], gpu.GPU.RGB8)
                                             final_color = [
-                                                int(existing_color[0] * (1 - transparency) + final_color[0] * transparency),
-                                                int(existing_color[1] * (1 - transparency) + final_color[1] * transparency),
-                                                int(existing_color[2] * (1 - transparency) + final_color[2] * transparency)
+                                                int(existing_color[0] * (1 - transparency) + new_color[0] * transparency),
+                                                int(existing_color[1] * (1 - transparency) + new_color[1] * transparency),
+                                                int(existing_color[2] * (1 - transparency) + new_color[2] * transparency)
                                             ]
+                                        else:
+                                            final_color = new_color
                                             
                                     gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, final_color)
                                     GL.ZBUFFER[y_pixel][x_pixel] = z_sub
@@ -285,6 +280,9 @@ class GL:
 
         perspMatrix = GL.perspectiveTransformMatrix(GL.near, GL.far, GL.right, GL.top)
         viewportMatrix = GL.viewportTransformMatrix(GL.width, GL.height)
+
+        if "transparency" in colors and colors["transparency"] > 0:
+            transparency = colors["transparency"]
         
         for i in range(0, len(point), 9):
             x1, y1, z1 = point[i:i+3]
@@ -301,7 +299,7 @@ class GL:
             proj_p2 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p2
             proj_p3 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p3
 
-            originalZ = [proj_p1[2], proj_p2[2], proj_p3[2]]
+            originalZ = [proj_p1[2], proj_p2[2], proj_p3[2]] # Store original z values for z buffer
 
             # Divide by w (Perspective Divide)
             p1_clip = proj_p1 / (proj_p1[3] if proj_p1[3] != 0 else 0.1)
@@ -469,9 +467,8 @@ class GL:
         print("\nFaces Length : {0}".format(len(coordIndex)), flush=True)
 
         transparency = 1.0
-        if "transparency" in colors:
-            if colors["transparency"] > 0:
-                transparency = 1 - colors["transparency"]
+        if "transparency" in colors and colors["transparency"] > 0:
+            transparency = colors["transparency"]
 
         textureImage = None
         if current_texture:
@@ -503,7 +500,6 @@ class GL:
 
         # -------------------------------- #
 
-        print ("\n Fans : {0}".format(list_of_fans), flush=True)
         for i in range(len(list_of_fans)):
             current_fan_indices = list_of_fans[i]
             current_colors = list_of_colors[i]
@@ -530,7 +526,6 @@ class GL:
                 
                 # Triangle with texture
                 if texCoord and texCoordIndex:
-                    print("Texture", current_texture_coords, end=' ', flush=True)
                     t1_idx = current_texture_coords[0]
                     t2_idx = current_texture_coords[j]
                     t3_idx = current_texture_coords[j + 1]
@@ -574,7 +569,7 @@ class GL:
                             color2[0]*255, color2[1]*255, color2[2]*255,
                             color1[0]*255, color1[1]*255, color1[2]*255
                         ]
-                        
+
                 # -------------------------------- #
 
                 else:
