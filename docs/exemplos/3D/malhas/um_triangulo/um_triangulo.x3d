@@ -4,7 +4,7 @@
 
     <NavigationInfo headlight="false"/> <!-- You can ignore this node for the moment -->
 
-    <Viewpoint position="0 0 -15" orientation="0 -1 0 3.1415"/> <!-- https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/navigation.html -->
+    <Viewpoint position="0 0 -5" orientation="0 -1 0 3.1415"/> <!-- https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/navigation.html -->
 
     <Transform translation="0 0 5" rotation="-1 0 0 3.1415"> <!-- https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/group.html -->
       <Shape>

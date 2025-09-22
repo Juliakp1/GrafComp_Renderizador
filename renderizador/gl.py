@@ -144,7 +144,7 @@ class GL:
     # --------------------------------------------------------------- #
 
     @staticmethod
-    def triangleSet2D(vertices, colors, z_values=[], transparency=1):
+    def triangleSet2D(vertices, colors, z_values=[], transparency=1, texture=None, texture_coords=None):
         """Função usada para renderizar TriangleSet2D."""
 
         def test_point(x, y, x1, x2, y1, y2):
@@ -200,16 +200,50 @@ class GL:
                                 z_sub = 1.0 / inv_z_sub
 
                                 if z_sub < current_depth:
+                                    
+                                    # Texture mapping
+                                    if texture is not None and texture_coords is not None:
+                                        u1, v1 = texture_coords[i], texture_coords[i + 1]
+                                        u2, v2 = texture_coords[i + 2], texture_coords[i + 3]
+                                        u3, v3 = texture_coords[i + 4], texture_coords[i + 5]
 
-                                    if len(colors) > 5:
-                                        r1, g1, b1 = colors[0], colors[1], colors[2]
-                                        r2, g2, b2 = colors[3], colors[4], colors[5]
-                                        r3, g3, b3 = colors[6], colors[7], colors[8]
-                                        
+                                        u_sub = (alpha * u1 * inv_z1 + beta * u2 * inv_z2 + gamma * u3 * inv_z3) * z_sub
+                                        v_sub = (alpha * v1 * inv_z1 + beta * v2 * inv_z2 + gamma * v3 * inv_z3) * z_sub
 
-                                        final_r = alpha * r1 + beta * r2 + gamma * r3
-                                        final_g = alpha * g1 + beta * g2 + gamma * g3
-                                        final_b = alpha * b1 + beta * b2 + gamma * b3
+                                        tex_x = int(u_sub * (len(texture[0]) - 1))
+                                        tex_y = int((1 - v_sub) * (len(texture) - 1)) # Invert v coordinate
+
+                                        tex_x = max(0, min(len(texture[0]) - 1, tex_x))
+                                        tex_y = max(0, min(len(texture) - 1, tex_y))
+
+                                        final_color = texture[tex_y][tex_x]
+
+                                        if transparency < 1:
+                                            existing_color = gpu.GPU.read_pixel([x_pixel, y_pixel], gpu.GPU.RGB8)
+                                            final_color = [
+                                                int(existing_color[0] * (1 - transparency) + final_color[0] * transparency),
+                                                int(existing_color[1] * (1 - transparency) + final_color[1] * transparency),
+                                                int(existing_color[2] * (1 - transparency) + final_color[2] * transparency)
+                                            ]
+
+                                        print("Texture Color at ({}, {}): {}".format(tex_x, tex_y, colors))
+
+                                    # -------------------------------- #
+
+                                    # Color per vertex
+                                    elif len(colors) > 8:
+                                        z1, r1, g1, b1 = z_values[0], colors[0], colors[1], colors[2]
+                                        z2, r2, g2, b2 = z_values[1], colors[3], colors[4], colors[5]
+                                        z3, r3, g3, b3 = z_values[2], colors[6], colors[7], colors[8]
+
+                                        r_over_z = alpha * (r1 / z1) + beta * (r2 / z2) + gamma * (r3 / z3)
+                                        g_over_z = alpha * (g1 / z1) + beta * (g2 / z2) + gamma * (g3 / z3)
+                                        b_over_z = alpha * (b1 / z1) + beta * (b2 / z2) + gamma * (b3 / z3)
+
+                                        final_r = r_over_z * z_sub
+                                        final_g = g_over_z * z_sub
+                                        final_b = b_over_z * z_sub
+
                                         final_color = [int(final_r), int(final_g), int(final_b)]
 
                                         if transparency < 1:
@@ -220,34 +254,33 @@ class GL:
                                                 int(existing_color[2] * (1 - transparency) + final_color[2] * transparency)
                                             ]
 
-                                        gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, final_color)
-                                        GL.ZBUFFER[y_pixel][x_pixel] = z_sub
-
                                     # -------------------------------- #
 
+                                    # Single color
                                     else:
-
                                         if "emissiveColor" in colors: # corrects ones that werent unpacked
-                                            colors = [
+                                            final_color = [
                                                 colors["emissiveColor"][0] * 255,
                                                 colors["emissiveColor"][1] * 255,
                                                 colors["emissiveColor"][2] * 255]
+                                        else:
+                                            final_color = [colors[0], colors[1], colors[2]]
                                             
                                         if transparency < 1:
                                             existing_color = gpu.GPU.read_pixel([x_pixel, y_pixel], gpu.GPU.RGB8)
-                                            colors = [
-                                                int(existing_color[0] * (1 - transparency) + colors[0] * transparency),
-                                                int(existing_color[1] * (1 - transparency) + colors[1] * transparency),
-                                                int(existing_color[2] * (1 - transparency) + colors[2] * transparency)
+                                            final_color = [
+                                                int(existing_color[0] * (1 - transparency) + final_color[0] * transparency),
+                                                int(existing_color[1] * (1 - transparency) + final_color[1] * transparency),
+                                                int(existing_color[2] * (1 - transparency) + final_color[2] * transparency)
                                             ]
                                             
-                                        gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, colors)
-                                        GL.ZBUFFER[y_pixel][x_pixel] = z_sub
+                                    gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, final_color)
+                                    GL.ZBUFFER[y_pixel][x_pixel] = z_sub
 
     # --------------------------------------------------------------- #
 
     @staticmethod
-    def triangleSet(point, colors, transparency=1):
+    def triangleSet(point, colors, transparency=1, texture=None, texture_coords=None):
         """Função usada para renderizar TriangleSet."""
 
         perspMatrix = GL.perspectiveTransformMatrix(GL.near, GL.far, GL.right, GL.top)
@@ -267,6 +300,8 @@ class GL:
             proj_p1 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p1
             proj_p2 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p2
             proj_p3 = perspMatrix @ GL.VIEW @ GL.STACK[-1] @ p3
+
+            originalZ = [proj_p1[2], proj_p2[2], proj_p3[2]]
 
             # Divide by w (Perspective Divide)
             p1_clip = proj_p1 / (proj_p1[3] if proj_p1[3] != 0 else 0.1)
@@ -296,7 +331,7 @@ class GL:
             # print("Clip Point 1 : {0}".format(p1_clip))
             # print("Point 1 viewport : {0}".format(p1_viewport))
 
-            GL.triangleSet2D(projVertices, colors, z_values=[p1_clip[2], p2_clip[2], p3_clip[2]], transparency=transparency)
+            GL.triangleSet2D(projVertices, colors, z_values=originalZ, transparency=transparency, texture=texture, texture_coords=texture_coords)
 
     # --------------------------------------------------------------- #
 
@@ -318,11 +353,20 @@ class GL:
 
         print("Updated fovy = {0}, top = {1}, bottom = {2}, right = {3}, left = {4}".format(GL.fovy, GL.top, GL.bottom, GL.right, GL.left))
 
-        x, y, z, angle = orientation
-        orientationQuaternion = np.array([x * math.sin(angle / 2), y * math.sin(angle / 2), z * math.sin(angle / 2), math.cos(angle / 2)])
+        eye = np.array(position)
+        at = eye + np.array([0, 0, -1])
+        up = np.array([0, 1, 0])
 
-        position[1] = -position[1] 
-        GL.VIEW = GL.quaternionToRotationMatrix(orientationQuaternion) @ GL.translationMatrix(position)
+        w = (at - eye) / np.linalg.norm(at - eye)
+        u = np.cross(w, up) / np.linalg.norm(np.cross(w, up))
+        v = np.cross(u, w) / np.linalg.norm(np.cross(u, w))
+
+        GL.VIEW = np.array([
+            [u[0], u[1], u[2], -np.dot(u, eye)],
+            [v[0], v[1], v[2], -np.dot(v, eye)],
+            [-w[0], -w[1], -w[2], np.dot(w, eye)],
+            [0, 0, 0, 1]
+        ])
 
     # --------------------------------------------------------------- #
     
@@ -429,26 +473,41 @@ class GL:
             if colors["transparency"] > 0:
                 transparency = 1 - colors["transparency"]
 
+        textureImage = None
+        if current_texture:
+            textureImage = gpu.GPU.load_texture(current_texture[0])
+
         # Splits the lists
         list_of_fans = []
         list_of_colors = []
         current_fan_indices = []
         current_colors = []
+        list_of_texture_coords = []
+        current_texture_coords = []
+
         for i in range(len(coordIndex)):
             if coordIndex[i] == -1:
                 list_of_fans.append(current_fan_indices)
                 list_of_colors.append(current_colors)
+                list_of_texture_coords.append(current_texture_coords)
                 current_fan_indices = []
+                current_colors = []
+                current_texture_coords = []
             else:
                 current_fan_indices.append(coordIndex[i])
                 if colorPerVertex and color:
                     current_colors.append(colorIndex[i])
+                if texCoord and texCoordIndex:
+                    current_texture_coords.append(texCoordIndex[i])
                 continue
 
         # -------------------------------- #
 
+        print ("\n Fans : {0}".format(list_of_fans), flush=True)
         for i in range(len(list_of_fans)):
             current_fan_indices = list_of_fans[i]
+            current_colors = list_of_colors[i]
+            current_texture_coords = list_of_texture_coords[i]
             anchor_idx = current_fan_indices[0]
             swapDirection = False
 
@@ -465,9 +524,34 @@ class GL:
 
                 # -------------------------------- #
 
-                # Triangle colors
-                triangle_colors = None
-                if colorPerVertex and color: 
+                triangle_coords = []
+                texture_coords = None
+                final_color = []
+                
+                # Triangle with texture
+                if texCoord and texCoordIndex:
+                    print("Texture", current_texture_coords, end=' ', flush=True)
+                    t1_idx = current_texture_coords[0]
+                    t2_idx = current_texture_coords[j]
+                    t3_idx = current_texture_coords[j + 1]
+
+                    u1, v1 = texCoord[t1_idx * 2 : t1_idx * 2 + 2]
+                    u2, v2 = texCoord[t2_idx * 2 : t2_idx * 2 + 2]
+                    u3, v3 = texCoord[t3_idx * 2 : t3_idx * 2 + 2]
+
+                    if not swapDirection:
+                        triangle_coords = [x1, y1, z1, x2, y2, z2, x3, y3, z3]
+                        texture_coords = [u1, v1, u2, v2, u3, v3]
+                    else:
+                        triangle_coords = [x3, y3, z3, x2, y2, z2, x1, y1, z1]
+                        texture_coords = [u3, v3, u2, v2, u1, v1]
+
+                    final_color = [0, 0, 0]
+                    
+                # -------------------------------- #
+
+                # Triangle multi colors
+                elif colorPerVertex and color: 
                     c1_idx = current_colors[0]
                     c2_idx = current_colors[j]
                     c3_idx = current_colors[j + 1]
@@ -478,32 +562,29 @@ class GL:
 
                     if not swapDirection:
                         triangle_coords = [x1, y1, z1, x2, y2, z2, x3, y3, z3]
-                        triangle_colors = [
-                        color1[0]*255, color1[1]*255, color1[2]*255,
-                        color2[0]*255, color2[1]*255, color2[2]*255,
-                        color3[0]*255, color3[1]*255, color3[2]*255
+                        final_color = [
+                            color1[0]*255, color1[1]*255, color1[2]*255,
+                            color2[0]*255, color2[1]*255, color2[2]*255,
+                            color3[0]*255, color3[1]*255, color3[2]*255
                         ]
-                        GL.triangleSet(triangle_coords, triangle_colors, transparency=transparency)
                     else:
                         triangle_coords = [x3, y3, z3, x2, y2, z2, x1, y1, z1]
-                        triangle_colors = [
+                        final_color = [
                             color3[0]*255, color3[1]*255, color3[2]*255,
                             color2[0]*255, color2[1]*255, color2[2]*255,
                             color1[0]*255, color1[1]*255, color1[2]*255
                         ]
-                        GL.triangleSet(triangle_coords, triangle_colors, transparency=transparency)
-
-                    swapDirection = not swapDirection
-                
+                        
                 # -------------------------------- #
 
                 else:
-                    final_color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
                     triangle_coords = [x1, y1, z1, x2, y2, z2, x3, y3, z3]
-                    GL.triangleSet(triangle_coords, final_color, transparency=transparency)
+                    final_color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
 
+                GL.triangleSet(triangle_coords, final_color, transparency=transparency, texture=textureImage, texture_coords=texture_coords)
+                swapDirection = not swapDirection
                 print(j, end=' ', flush=True)
-                
+
     # --------------------------------------------------------------- #
 
     @staticmethod
