@@ -494,7 +494,7 @@ class GL:
                 current_fan_indices.append(coordIndex[i])
                 if colorPerVertex and color:
                     current_colors.append(colorIndex[i])
-                if texCoord and texCoordIndex:
+                if textureImage is not None:
                     current_texture_coords.append(texCoordIndex[i])
                 continue
 
@@ -525,7 +525,7 @@ class GL:
                 final_color = []
                 
                 # Triangle with texture
-                if texCoord and texCoordIndex:
+                if textureImage is not None:
                     t1_idx = current_texture_coords[0]
                     t2_idx = current_texture_coords[j]
                     t3_idx = current_texture_coords[j + 1]
