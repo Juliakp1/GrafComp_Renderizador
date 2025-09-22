@@ -144,7 +144,7 @@ class GL:
     # --------------------------------------------------------------- #
 
     @staticmethod
-    def triangleSet2D(vertices, colors, z_values=[], transparency=[]):
+    def triangleSet2D(vertices, colors, z_values=[], transparency=1):
         """Função usada para renderizar TriangleSet2D."""
 
         def test_point(x, y, x1, x2, y1, y2):
@@ -199,34 +199,47 @@ class GL:
                                 inv_z_sub = alpha * inv_z1 + beta * inv_z2 + gamma * inv_z3
                                 z_sub = 1.0 / inv_z_sub
 
-                                if len(colors) == 9:
-                                    r1, g1, b1 = colors[0], colors[1], colors[2]
-                                    r2, g2, b2 = colors[3], colors[4], colors[5]
-                                    r3, g3, b3 = colors[6], colors[7], colors[8]
+                                if z_sub < current_depth:
 
-                                    if z_sub < current_depth:
-                                        GL.ZBUFFER[y_pixel][x_pixel] = z_sub
+                                    if len(colors) > 5:
+                                        r1, g1, b1 = colors[0], colors[1], colors[2]
+                                        r2, g2, b2 = colors[3], colors[4], colors[5]
+                                        r3, g3, b3 = colors[6], colors[7], colors[8]
+                                        
+                                        if transparency < 1.0:
+                                            GL.ZBUFFER[y_pixel][x_pixel] = z_sub
 
                                         final_r = alpha * r1 + beta * r2 + gamma * r3
                                         final_g = alpha * g1 + beta * g2 + gamma * g3
                                         final_b = alpha * b1 + beta * b2 + gamma * b3
-                                        final_color = [int(min(final_r, 255)*transparency), int(min(final_g, 255)*transparency), int(min(final_b, 255)*transparency)] 
+                                        final_color = [
+                                            int(final_r * transparency), 
+                                            int(final_g * transparency), 
+                                            int(final_b * transparency)] 
 
                                         gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, final_color)
 
-                                # -------------------------------- #
+                                    # -------------------------------- #
 
-                                else:
-                                    if z_sub < current_depth:
-                                        GL.ZBUFFER[y_pixel][x_pixel] = z_sub
+                                    else:
+                                        
+                                        if transparency < 1.0:
+                                            GL.ZBUFFER[y_pixel][x_pixel] = z_sub
+
                                         if "emissiveColor" in colors:
-                                            colors = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
+                                            colors = [
+                                                colors["emissiveColor"][0] * 255 * transparency,
+                                                colors["emissiveColor"][1] * 255 * transparency,
+                                                colors["emissiveColor"][2] * 255 * transparency]
+                                        else:
+                                            colors = [colors[0] * transparency, colors[1] * transparency, colors[2] * transparency]
+                                            
                                         gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, colors)
 
     # --------------------------------------------------------------- #
 
     @staticmethod
-    def triangleSet(point, colors, transparency=[]):
+    def triangleSet(point, colors, transparency=1):
         """Função usada para renderizar TriangleSet."""
 
         perspMatrix = GL.perspectiveTransformMatrix(GL.near, GL.far, GL.right, GL.top)
@@ -300,8 +313,9 @@ class GL:
         x, y, z, angle = orientation
         orientationQuaternion = np.array([x * math.sin(angle / 2), y * math.sin(angle / 2), z * math.sin(angle / 2), math.cos(angle / 2)])
 
+        position[1] = -position[1] 
         GL.VIEW = GL.quaternionToRotationMatrix(orientationQuaternion) @ GL.translationMatrix(position)
-        
+
     # --------------------------------------------------------------- #
     
     @staticmethod
@@ -402,9 +416,10 @@ class GL:
 
         print("\nFaces Length : {0}".format(len(coordIndex)), flush=True)
 
-        transparency = 1
+        transparency = 1.0
         if "transparency" in colors:
-            transparency = colors["transparency"]
+            if colors["transparency"] > 0:
+                transparency = 1 - colors["transparency"]
 
         # Splits the lists
         list_of_fans = []
@@ -418,7 +433,7 @@ class GL:
                 current_fan_indices = []
             else:
                 current_fan_indices.append(coordIndex[i])
-                if current_colors:
+                if colorPerVertex and color:
                     current_colors.append(colorIndex[i])
                 continue
 
