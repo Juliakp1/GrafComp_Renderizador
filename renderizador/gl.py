@@ -605,30 +605,59 @@ class GL:
         # locais. O argumento size especifica as extensões da caixa ao longo dos eixos X, Y
         # e Z, respectivamente, e cada valor do tamanho deve ser maior que zero. Para desenha
         # essa caixa você vai provavelmente querer tesselar ela em triângulos, para isso
-        # encontre os vértices e defina os triângulos.
+        # encontre os vértices e defina os triângulos. Use indexedFaceSet para isso.
 
-        # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
-        print("Box : size = {0}".format(size)) # imprime no terminal pontos
-        print("Box : colors = {0}".format(colors)) # imprime no terminal as cores
+        # Define os vértices do box
+        sx, sy, sz = size[0] / 2, size[1] / 2, size[2] / 2
+        vertices = [
+            -sx, -sy, -sz,
+            sx, -sy, -sz,
+            sx, sy, -sz,
+            -sx, sy, -sz,
+            -sx, -sy, sz,
+            sx, -sy, sz,
+            sx, sy, sz,
+            -sx, sy, sz
+        ]
+        indices = [
+            0, 1, 2, 3, -1, # back
+            4, 5, 6, 7, -1, # front
+            0, 4, 7, 3, -1, # left
+            1, 5, 6, 2, -1, # right
+            3, 2, 6, 7, -1, # top
+            0, 1, 5, 4, -1, # bottom
+        ]
 
-        # Exemplo de desenho de um pixel branco na coordenada 10, 10
-        gpu.GPU.draw_pixel([10, 10], gpu.GPU.RGB8, [255, 255, 255])  # altera pixel
+        GL.indexedFaceSet(vertices, indices, False, None, None, None, None, colors, None)
+
 
     # --------------------------------------------------------------- #
 
     @staticmethod
     def sphere(radius, colors):
         """Função usada para renderizar Esferas."""
-        # https://www.web3d.org/specifications/X3Dv4/ISO-IEC19775-1v4-IS/Part01/components/geometry3D.html#Sphere
-        # A função sphere é usada para desenhar esferas na cena. O esfera é centrada no
-        # (0, 0, 0) no sistema de coordenadas local. O argumento radius especifica o
-        # raio da esfera que está sendo criada. Para desenha essa esfera você vai
-        # precisar tesselar ela em triângulos, para isso encontre os vértices e defina
-        # os triângulos.
 
-        # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
-        print("Sphere : radius = {0}".format(radius)) # imprime no terminal o raio da esfera
-        print("Sphere : colors = {0}".format(colors)) # imprime no terminal as cores
+        center = [0, 0, 0]
+        stacks = 20
+        slices = 20
+        vertices = []
+        indices = []
+        for i in range(stacks + 1):
+            phi = math.pi * i / stacks
+            for j in range(slices + 1):
+                theta = 2 * math.pi * j / slices
+                x = center[0] + radius * math.sin(phi) * math.cos(theta)
+                y = center[1] + radius * math.sin(phi) * math.sin(theta)
+                z = center[2] + radius * math.cos(phi)
+                vertices.extend([x, y, z])
+                
+                if i < stacks and j < slices:
+                    first = i * (slices + 1) + j
+                    second = first + slices + 1
+                    indices.extend([first, second, first + 1, second + 1, -1])
+
+        GL.indexedFaceSet(vertices, indices, False, None, None, None, None, colors, None)
+
 
     # --------------------------------------------------------------- #
 
