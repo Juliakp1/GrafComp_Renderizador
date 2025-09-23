@@ -29,6 +29,7 @@ class GL:
     left = 0
     fovDiag = 60 
     fovy = 60   # campo de visão vertical
+    cameraPos = [0, 0, 0]
 
     VIEW = []
     STACK = [np.eye(4)]
@@ -44,6 +45,43 @@ class GL:
         GL.far = far
 
         print("width = {0}, height = {1}, near = {2}, far = {3}".format(width, height, near, far))
+
+    # --------------------------------------------------------------- #
+
+    @staticmethod
+    def viewpoint(position, orientation, fieldOfView):
+        """Função usada para renderizar (na verdade coletar os dados) de Viewpoint."""
+        print("Viewpoint : ", end='')
+        print("position = {0} ".format(position), end='')
+        print("orientation = {0} ".format(orientation), end='')
+        print("fieldOfView = {0} ".format(fieldOfView))
+
+        aspect = GL.width / GL.height
+        GL.fovDiag = fieldOfView
+
+        GL.top = GL.near * math.tan(fieldOfView / 2)
+        GL.bottom = -GL.top
+        GL.right = GL.top * aspect
+        GL.left = -GL.right
+
+        print("Updated fovy = {0}, top = {1}, bottom = {2}, right = {3}, left = {4}".format(GL.fovy, GL.top, GL.bottom, GL.right, GL.left))
+
+        GL.cameraPos = position
+
+        eye = np.array(position)
+        at = eye + np.array([0, 0, -1])
+        up = np.array([0, 1, 0])
+
+        w = (at - eye) / np.linalg.norm(at - eye)
+        u = np.cross(w, up) / np.linalg.norm(np.cross(w, up))
+        v = np.cross(u, w) / np.linalg.norm(np.cross(u, w))
+
+        GL.VIEW = np.array([
+            [u[0], u[1], u[2], -np.dot(u, eye)],
+            [v[0], v[1], v[2], -np.dot(v, eye)],
+            [-w[0], -w[1], -w[2], np.dot(w, eye)],
+            [0, 0, 0, 1]
+        ])
 
     # --------------------------------------------------------------- #
 
@@ -167,6 +205,9 @@ class GL:
             inv_z1 = 1.0 / z_values[0]
             inv_z2 = 1.0 / z_values[1]
             inv_z3 = 1.0 / z_values[2]
+            
+            face_normal = np.array(normal)
+            face_normal = face_normal / np.linalg.norm(face_normal)
 
             # bounding box 
             min_x = int(min(x1, x2, x3))
@@ -201,7 +242,7 @@ class GL:
                                 z_sub = 1.0 / inv_z_sub
 
                                 if z_sub < current_depth:
-                                    
+
                                     # Texture mapping
                                     if texture is not None and texture_coords is not None:
                                         u1, v1 = texture_coords[i], texture_coords[i + 1]
@@ -273,13 +314,59 @@ class GL:
                                     # -------------------------------- #
 
                                     # Lighting
-                                    if normal is not None and GL.LIGHTS:
-                                        # TODO
-                                        pass
-                                    
+                                    if normal is not None and GL.LIGHTS and final_color != [0, 0, 0]:
+                                        print("lights:", GL.LIGHTS)
+                                        print("final_color before lighting:", final_color)
+                                        
+                                        light = GL.LIGHTS[0]  # Assuming a single directional light temporarily
+                                        light_dir = np.array(light["direction"])
+
+                                        # Ambient
+                                        ambient_color = [0, 0, 0]
+                                        for light in GL.LIGHTS:
+                                            ambient_color[0] += light["color"][0] * light["ambientIntensity"] * final_color[0]
+                                            ambient_color[1] += light["color"][1] * light["ambientIntensity"] * final_color[1]
+                                            ambient_color[2] += light["color"][2] * light["ambientIntensity"] * final_color[2]
+                                        print("ambient_color:", ambient_color)
+
+                                        # Diffuse
+                                        diffuse_factor = max(0.0, np.dot(face_normal, -light_dir))
+                                        diffuse_color = [
+                                            final_color[0] * light["color"][0] * light["intensity"] * diffuse_factor,
+                                            final_color[1] * light["color"][1] * light["intensity"] * diffuse_factor,
+                                            final_color[2] * light["color"][2] * light["intensity"] * diffuse_factor
+                                        ]
+                                        print("diffuse_color:", diffuse_color)
+
+                                        # Specular
+                                        view_dir = GL.cameraPos
+                                        half_vector = (light_dir + view_dir) / np.linalg.norm(light_dir + view_dir)
+                                        specular_factor = max(0.0, np.dot(face_normal, half_vector)) ** 32  # 32 is typical shininess 
+                                        specular_color = [
+                                            light["color"][0] * light["intensity"] * specular_factor,
+                                            light["color"][1] * light["intensity"] * specular_factor,
+                                            light["color"][2] * light["intensity"] * specular_factor
+                                        ]
+                                        print("specular_color:", specular_color)
+                                        
+                                        final_r = ambient_color[0] + diffuse_color[0] + specular_color[0]
+                                        final_g = ambient_color[1] + diffuse_color[1] + specular_color[1]
+                                        final_b = ambient_color[2] + diffuse_color[2] + specular_color[2]
+
+                                        shadedColors = [
+                                            int(min(255, max(0, final_r))),
+                                            int(min(255, max(0, final_g))),
+                                            int(min(255, max(0, final_b)))
+                                        ]
+                                        print("shadedColors:", shadedColors)
+                                        print("---")
+
+                                    else:
+                                        shadedColors = final_color
+
                                     # -------------------------------- #
 
-                                    gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, final_color)
+                                    gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, shadedColors)
                                     GL.ZBUFFER[y_pixel][x_pixel] = z_sub
 
     # --------------------------------------------------------------- #
@@ -340,41 +427,6 @@ class GL:
                              texture=texture, 
                              texture_coords=texture_coords,
                              normal=normal)
-
-    # --------------------------------------------------------------- #
-
-    @staticmethod
-    def viewpoint(position, orientation, fieldOfView):
-        """Função usada para renderizar (na verdade coletar os dados) de Viewpoint."""
-        print("Viewpoint : ", end='')
-        print("position = {0} ".format(position), end='')
-        print("orientation = {0} ".format(orientation), end='')
-        print("fieldOfView = {0} ".format(fieldOfView))
-
-        aspect = GL.width / GL.height
-        GL.fovDiag = fieldOfView
-
-        GL.top = GL.near * math.tan(fieldOfView / 2)
-        GL.bottom = -GL.top
-        GL.right = GL.top * aspect
-        GL.left = -GL.right
-
-        print("Updated fovy = {0}, top = {1}, bottom = {2}, right = {3}, left = {4}".format(GL.fovy, GL.top, GL.bottom, GL.right, GL.left))
-
-        eye = np.array(position)
-        at = eye + np.array([0, 0, -1])
-        up = np.array([0, 1, 0])
-
-        w = (at - eye) / np.linalg.norm(at - eye)
-        u = np.cross(w, up) / np.linalg.norm(np.cross(w, up))
-        v = np.cross(u, w) / np.linalg.norm(np.cross(u, w))
-
-        GL.VIEW = np.array([
-            [u[0], u[1], u[2], -np.dot(u, eye)],
-            [v[0], v[1], v[2], -np.dot(v, eye)],
-            [-w[0], -w[1], -w[2], np.dot(w, eye)],
-            [0, 0, 0, 1]
-        ])
 
     # --------------------------------------------------------------- #
     
