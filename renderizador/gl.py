@@ -195,7 +195,11 @@ class GL:
             return 0 <= final
         
         grid_size = 2 # 4 samples per pixel
-        num_samples = grid_size * grid_size
+        
+        shininess = colors.get("shininess", 32)
+        specularColor = None
+        if "specularColor" in colors:
+            specularColor = [colors["specularColor"][0]*255, colors["specularColor"][1]*255, colors["specularColor"][2]*255]
 
         for i in range(0, len(vertices), 6):
             x1, y1 = vertices[i], vertices[i + 1]
@@ -293,7 +297,12 @@ class GL:
 
                                     # Single color
                                     else:
-                                        if "emissiveColor" in colors: # corrects ones that werent unpacked
+                                        if "diffuseColor" in colors:
+                                            new_color = [
+                                                colors["diffuseColor"][0] * 255,
+                                                colors["diffuseColor"][1] * 255,
+                                                colors["diffuseColor"][2] * 255]
+                                        elif "emissiveColor" in colors:
                                             new_color = [
                                                 colors["emissiveColor"][0] * 255,
                                                 colors["emissiveColor"][1] * 255,
@@ -315,8 +324,6 @@ class GL:
 
                                     # Lighting
                                     if normal is not None and GL.LIGHTS and final_color != [0, 0, 0]:
-                                        print("lights:", GL.LIGHTS)
-                                        print("final_color before lighting:", final_color)
                                         
                                         light = GL.LIGHTS[0]  # Assuming a single directional light temporarily
                                         light_dir = np.array(light["direction"])
@@ -327,7 +334,6 @@ class GL:
                                             ambient_color[0] += light["color"][0] * light["ambientIntensity"] * final_color[0]
                                             ambient_color[1] += light["color"][1] * light["ambientIntensity"] * final_color[1]
                                             ambient_color[2] += light["color"][2] * light["ambientIntensity"] * final_color[2]
-                                        print("ambient_color:", ambient_color)
 
                                         # Diffuse
                                         diffuse_factor = max(0.0, np.dot(face_normal, -light_dir))
@@ -336,18 +342,16 @@ class GL:
                                             final_color[1] * light["color"][1] * light["intensity"] * diffuse_factor,
                                             final_color[2] * light["color"][2] * light["intensity"] * diffuse_factor
                                         ]
-                                        print("diffuse_color:", diffuse_color)
 
                                         # Specular
                                         view_dir = GL.cameraPos
                                         half_vector = (light_dir + view_dir) / np.linalg.norm(light_dir + view_dir)
-                                        specular_factor = max(0.0, np.dot(face_normal, half_vector)) ** 32  # 32 is typical shininess 
+                                        specular_factor = max(0.0, np.dot(face_normal, half_vector)) ** shininess 
                                         specular_color = [
                                             light["color"][0] * light["intensity"] * specular_factor,
                                             light["color"][1] * light["intensity"] * specular_factor,
                                             light["color"][2] * light["intensity"] * specular_factor
                                         ]
-                                        print("specular_color:", specular_color)
                                         
                                         final_r = ambient_color[0] + diffuse_color[0] + specular_color[0]
                                         final_g = ambient_color[1] + diffuse_color[1] + specular_color[1]
@@ -358,8 +362,6 @@ class GL:
                                             int(min(255, max(0, final_g))),
                                             int(min(255, max(0, final_b)))
                                         ]
-                                        print("shadedColors:", shadedColors)
-                                        print("---")
 
                                     else:
                                         shadedColors = final_color
@@ -639,8 +641,11 @@ class GL:
                 # -------------------------------- #
 
                 else:
-                    triangle_coords = [x1, y1, z1, x2, y2, z2, x3, y3, z3]
-                    final_color = [colors["emissiveColor"][0]*255, colors["emissiveColor"][1]*255, colors["emissiveColor"][2]*255]
+                    if not swapDirection:
+                        triangle_coords = [x1, y1, z1, x2, y2, z2, x3, y3, z3]
+                    else:
+                        triangle_coords = [x3, y3, z3, x2, y2, z2, x1, y1, z1]
+                    final_color = colors # will be processed in triangleSet2D
 
                 GL.triangleSet(triangle_coords, final_color, transparency=transparency, texture=textureImage, texture_coords=texture_coords)
                 swapDirection = not swapDirection
