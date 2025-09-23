@@ -33,6 +33,7 @@ class GL:
     VIEW = []
     STACK = [np.eye(4)]
     ZBUFFER = np.full((height, width), float('inf'))
+    LIGHTS = []
 
     @staticmethod
     def setup(width, height, near=0.01, far=1000):
@@ -144,7 +145,7 @@ class GL:
     # --------------------------------------------------------------- #
 
     @staticmethod
-    def triangleSet2D(vertices, colors, z_values=[1,1,1], transparency=1, texture=None, texture_coords=None):
+    def triangleSet2D(vertices, colors, z_values=[1,1,1], transparency=1, texture=None, texture_coords=None, normal=None):
         """Função usada para renderizar TriangleSet2D."""
 
         def test_point(x, y, x1, x2, y1, y2):
@@ -268,7 +269,16 @@ class GL:
                                             ]
                                         else:
                                             final_color = new_color
-                                            
+
+                                    # -------------------------------- #
+
+                                    # Lighting
+                                    if normal is not None and GL.LIGHTS:
+                                        # TODO
+                                        pass
+                                    
+                                    # -------------------------------- #
+
                                     gpu.GPU.draw_pixel([x_pixel, y_pixel], gpu.GPU.RGB8, final_color)
                                     GL.ZBUFFER[y_pixel][x_pixel] = z_sub
 
@@ -288,6 +298,11 @@ class GL:
             x1, y1, z1 = point[i:i+3]
             x2, y2, z2 = point[i+3:i+6]
             x3, y3, z3 = point[i+6:i+9]
+
+            # Calculates the normal vector of the triangle
+            v1 = np.array([x2 - x1, y2 - y1, z2 - z1])
+            v2 = np.array([x3 - x1, y3 - y1, z3 - z1])
+            normal = np.cross(v1, v2)
 
             # Homogenous coordinates
             p1 = np.array([x1, y1, z1, 1])
@@ -318,18 +333,13 @@ class GL:
                 p3_viewport[0], p3_viewport[1]
             ])
 
-            # print("\nView Matrix : {0}".format(GL.VIEW))
-            # print("Stack Top Matrix : {0}".format(GL.STACK[-1]))
-            # print("Perspective Matrix : {0}".format(perspMatrix))
-            # print("Viewport Matrix : {0}".format(viewportMatrix))
-
-            # print("\nPoint 1 : {0}".format(p1))
-            # print("Point 1 b4 proj ", GL.VIEW @ GL.STACK[-1] @ p1)
-            # print("Projected Point 1 : {0}".format(proj_p1))
-            # print("Clip Point 1 : {0}".format(p1_clip))
-            # print("Point 1 viewport : {0}".format(p1_viewport))
-
-            GL.triangleSet2D(projVertices, colors, z_values=originalZ, transparency=transparency, texture=texture, texture_coords=texture_coords)
+            GL.triangleSet2D(projVertices, 
+                             colors, 
+                             z_values=originalZ, 
+                             transparency=transparency, 
+                             texture=texture, 
+                             texture_coords=texture_coords,
+                             normal=normal)
 
     # --------------------------------------------------------------- #
 
@@ -661,33 +671,37 @@ class GL:
     @staticmethod
     def navigationInfo(headlight):
         """Características físicas do avatar do visualizador e do modelo de visualização."""
-        # https://www.web3d.org/specifications/X3Dv4/ISO-IEC19775-1v4-IS/Part01/components/navigation.html#NavigationInfo
-        # O campo do headlight especifica se um navegador deve acender um luz direcional que
-        # sempre aponta na direção que o usuário está olhando. Definir este campo como TRUE
-        # faz com que o visualizador forneça sempre uma luz do ponto de vista do usuário.
-        # A luz headlight deve ser direcional, ter intensidade = 1, cor = (1 1 1),
-        # ambientIntensity = 0,0 e direção = (0 0 −1).
 
-        # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
-        print("NavigationInfo : headlight = {0}".format(headlight)) # imprime no terminal
+        print("NavigationInfo : headlight = {0}".format(headlight)) 
+        if headlight:
+            newLight = {
+                "type": "DirectionalLight",
+                "ambientIntensity": 0.0,
+                "color": [1,1,1],
+                "intensity": 1,
+                "direction": [0,0,-1]
+            }
+            GL.LIGHTS.append(newLight)   
 
     # --------------------------------------------------------------- #
 
     @staticmethod
     def directionalLight(ambientIntensity, color, intensity, direction):
         """Luz direcional ou paralela."""
-        # https://www.web3d.org/specifications/X3Dv4/ISO-IEC19775-1v4-IS/Part01/components/lighting.html#DirectionalLight
-        # Define uma fonte de luz direcional que ilumina ao longo de raios paralelos
-        # em um determinado vetor tridimensional. Possui os campos básicos ambientIntensity,
-        # cor, intensidade. O campo de direção especifica o vetor de direção da iluminação
-        # que emana da fonte de luz no sistema de coordenadas local. A luz é emitida ao
-        # longo de raios paralelos de uma distância infinita.
 
-        # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
         print("DirectionalLight : ambientIntensity = {0}".format(ambientIntensity))
         print("DirectionalLight : color = {0}".format(color)) # imprime no terminal
         print("DirectionalLight : intensity = {0}".format(intensity)) # imprime no terminal
         print("DirectionalLight : direction = {0}".format(direction)) # imprime no terminal
+
+        newLight = {
+            "type": "DirectionalLight",
+            "ambientIntensity": ambientIntensity,
+            "color": color,
+            "intensity": intensity,
+            "direction": direction
+        }
+        GL.LIGHTS.append(newLight)   
 
     # --------------------------------------------------------------- #
 
