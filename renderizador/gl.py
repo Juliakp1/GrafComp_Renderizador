@@ -599,15 +599,7 @@ class GL:
     @staticmethod
     def box(size, colors):
         """Função usada para renderizar Boxes."""
-        # https://www.web3d.org/specifications/X3Dv4/ISO-IEC19775-1v4-IS/Part01/components/geometry3D.html#Box
-        # A função box é usada para desenhar paralelepípedos na cena. O Box é centrada no
-        # (0, 0, 0) no sistema de coordenadas local e alinhado com os eixos de coordenadas
-        # locais. O argumento size especifica as extensões da caixa ao longo dos eixos X, Y
-        # e Z, respectivamente, e cada valor do tamanho deve ser maior que zero. Para desenha
-        # essa caixa você vai provavelmente querer tesselar ela em triângulos, para isso
-        # encontre os vértices e defina os triângulos. Use indexedFaceSet para isso.
 
-        # Define os vértices do box
         sx, sy, sz = size[0] / 2, size[1] / 2, size[2] / 2
         vertices = [
             -sx, -sy, -sz,
@@ -642,14 +634,17 @@ class GL:
         slices = 20
         vertices = []
         indices = []
+
         for i in range(stacks + 1):
-            phi = math.pi * i / stacks
+            phi = math.pi * i / stacks # current stack angle
+
             for j in range(slices + 1):
-                theta = 2 * math.pi * j / slices
+                theta = 2 * math.pi * j / slices # current slice angle
+
                 x = center[0] + radius * math.sin(phi) * math.cos(theta)
                 y = center[1] + radius * math.sin(phi) * math.sin(theta)
                 z = center[2] + radius * math.cos(phi)
-                vertices.extend([x, y, z])
+                vertices.extend([x, y, z]) # extend instead of append to make flat list
                 
                 if i < stacks and j < slices:
                     first = i * (slices + 1) + j
@@ -657,7 +652,6 @@ class GL:
                     indices.extend([first, second, first + 1, second + 1, -1])
 
         GL.indexedFaceSet(vertices, indices, False, None, None, None, None, colors, None)
-
 
     # --------------------------------------------------------------- #
 
