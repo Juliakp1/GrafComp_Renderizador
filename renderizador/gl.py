@@ -769,11 +769,6 @@ class GL:
     def directionalLight(ambientIntensity, color, intensity, direction):
         """Luz direcional ou paralela."""
 
-        print("DirectionalLight : ambientIntensity = {0}".format(ambientIntensity))
-        print("DirectionalLight : color = {0}".format(color)) # imprime no terminal
-        print("DirectionalLight : intensity = {0}".format(intensity)) # imprime no terminal
-        print("DirectionalLight : direction = {0}".format(direction)) # imprime no terminal
-
         newLight = {
             "type": "DirectionalLight",
             "ambientIntensity": ambientIntensity,
